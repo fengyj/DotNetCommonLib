@@ -36,6 +36,9 @@ namespace me.fengyj.CommonLib.Utils.Tests {
 
             Assert.AreEqual(typeof(Nullable<int>), func.GetType().GenericTypeArguments[1]);
 
+            DateTime? dt = DateTime.Now;
+            dosomething(dt, typeof(DateTime));
+
         }
 
         private void dosomething(object? o, Type expectedType) {

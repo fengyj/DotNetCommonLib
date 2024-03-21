@@ -71,6 +71,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         internal string TryAddOrGetTableName(string? name) {
 
             if (string.IsNullOrWhiteSpace(name)) name = $"Table{this.TableNames.Count + 1}";
+            name = name.Replace(' ', '_');
             return StringUtil.TryAddOrGetNewNameIfDuplicated(this.TableNames, name);
         }
 
@@ -350,6 +351,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     var cell = cells[colIdx];
                     var val = cell.CellValue?.InnerText ?? cell.InnerText;
                     var length = (uint)(val?.Length ?? 2);
+                    if (cell.DataType?.Value == CellValues.Date || cell.DataType?.Value == CellValues.Number)
+                        length = (uint)(Math.Ceiling(length * 1.3));
                     if (lengths.TryGetValue(colIdx, out var value)) {
                         var l = value;
                         lengths[colIdx] = Math.Max(l, length);
@@ -533,7 +536,6 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 throw new ArgumentException("The headers' length doesn't match the table's width.");
 
             this.TableName = this.SheetBuilder.ExcelBuilder.TryAddOrGetTableName(tableName);
-            this.TableDisplayName = tableName ?? this.TableName;
 
             this.Headers = headers ?? new string[colEnd - colStart + 1];
             this.HasHeader = style?.ShowHeader ?? headers != null;
@@ -544,7 +546,6 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public uint Id { get; set; }
         public SheetBuilder SheetBuilder { get; private set; }
         public string TableName { get; private set; }
-        public string TableDisplayName { get; private set; }
         public uint RowStart { get; private set; }
         public uint RowEnd { get; private set; }
         public uint ColumnStart { get; private set; }
@@ -563,7 +564,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             var tblId = $"rId{this.Id}";
             var tblDefPart = worksheetPart.AddNewPart<TableDefinitionPart>(tblId);
             var tblRef = ExcelBuilder.GetExcelTableReference(this.RowStart, this.RowEnd, this.ColumnStart, this.ColumnEnd);
-            var tbl = new Table { Id = this.Id, Name = this.TableName, DisplayName = this.TableDisplayName, Reference = tblRef, TotalsRowShown = HasTotalRow };
+            var tbl = new Table { Id = this.Id, Name = this.TableName, DisplayName = this.TableName, Reference = tblRef, TotalsRowShown = HasTotalRow };
 
             var cols = new TableColumns { Count = UInt32Value.FromUInt32((uint)this.Headers.Length) };
             for (int i = 0; i < this.Headers.Length; i++) cols.Append(new TableColumn { Id = (uint)i + this.ColumnStart, Name = this.Headers[i].Trim() });

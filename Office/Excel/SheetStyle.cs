@@ -148,6 +148,42 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public CellFormat CellFormat { get; private set; }
         public CellValues CellValueType { get; private set; }
 
+        public CellStyle With(
+            NumberingStyle? numberingStyle = null,
+            FontStyle? fontStyle = null,
+            FillStyle? fillStyle = null,
+            BorderStyle? borderStyle = null,
+            AlignmentStyle? alignmentStyle = null,
+            CellValues? cellValueType = null) {
+
+            var nfId = numberingStyle?.Format.NumberFormatId?.Value ?? this.CellFormat.NumberFormatId?.Value;
+            var ftId = fontStyle?.StyleId ?? this.CellFormat.FontId?.Value;
+            var flId = fillStyle?.StyleId ?? this.CellFormat.FillId?.Value;
+            var bdId = borderStyle?.StyleId ?? this.CellFormat.BorderId?.Value;
+            var align = alignmentStyle?.GetAlignment() ?? this.CellFormat.Alignment;
+            var cvt = cellValueType ?? this.CellValueType;
+
+            var style = styles.Where(s => nfId == s.CellFormat?.NumberFormatId?.Value)
+                .Where(s => ftId == s.CellFormat?.FontId?.Value)
+                .Where(s => flId == s.CellFormat?.FillId?.Value)
+                .Where(s => bdId == s.CellFormat?.BorderId?.Value)
+                .Where(s => align?.Horizontal?.Value == s.CellFormat?.Alignment?.Horizontal?.Value)
+                .Where(s => align?.Vertical?.Value == s.CellFormat?.Alignment?.Vertical?.Value)
+                .Where(s => cvt == s.CellValueType)
+                .FirstOrDefault();
+
+            if (style != null) return style;
+
+            style = new CellStyle(cellValueType: cvt);
+            if(nfId != null) style.CellFormat.NumberFormatId = UInt32Value.FromUInt32(nfId.Value);
+            if (ftId != null) style.CellFormat.FontId = UInt32Value.FromUInt32(ftId.Value);
+            if (flId != null) style.CellFormat.FillId = UInt32Value.FromUInt32(flId.Value);
+            if (bdId != null) style.CellFormat.BorderId = UInt32Value.FromUInt32(bdId.Value);
+            if(align != null) style.CellFormat.Alignment = new Alignment { Horizontal = align.Horizontal, Vertical = align.Vertical };
+            if (this.CellFormat.ApplyAlignment != null) style.CellFormat.ApplyAlignment = new BooleanValue(this.CellFormat.ApplyAlignment.Value);
+            return style; 
+        }
+
         public static IEnumerable<CellStyle> GetStyles() => styles.OrderBy(s => s.StyleId);
     }
 

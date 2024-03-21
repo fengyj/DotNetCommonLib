@@ -24,7 +24,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                         ByteValue = 2,
                         UShortValue = 4_235,
                         FloatValue = 0.234f,
-                        DoubleValue = 342335423.02353445,
+                        DoubleValue = 34335423.03445,
                         DecimalValue = -3234.345323m,
                         DateTimeValue = DateTime.Now,
                         BooleanValue = false,
@@ -38,12 +38,12 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                         ByteValue = 25,
                         UShortValue = 4_235,
                         FloatValue = 3540.234f,
-                        DoubleValue = -342335423.02353445,
+                        DoubleValue = -34235423.0353445,
                         DecimalValue = -3234.345323m,
                         DateTimeValue = DateTime.Today,
                         BooleanValue = true,
-                        LongValue = -335326326353,
-                        ULongValue = 3675663534345,
+                        LongValue = -3353263353,
+                        ULongValue = 367563534345,
                         TimeSpanValue = null,
                     },
                     new(),
@@ -62,8 +62,9 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                         TimeSpanValue = TimeSpan.FromSeconds(34561)
                     }
                 ];
-
+            int id = 1;
             var tblCfg = new TableConfig<SampleData>([
+                    new TableColumnConfig<SampleData, string>("ID Column", dataGetter: i => id++.ToString()),
                     new TableColumnConfig<SampleData, string?>("String Column", dataGetter: i => i.StringValue),
                     new TableColumnConfig<SampleData, int?>("Int Column", dataGetter: i => i.IntValue),
                     new TableColumnConfig<SampleData, byte?>("Byte Column", dataGetter: i => i.ByteValue),
@@ -73,12 +74,15 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                     new TableColumnConfig<SampleData, decimal?>("Decimal Column", dataGetter: i => i.DecimalValue),
                     new TableColumnConfig<SampleData, DateTime?>("DateTime Column", dataGetter: i => i.DateTimeValue),
                     new TableColumnConfig<SampleData, bool?>("Bool Column", dataGetter: i => i.BooleanValue),
-                    new TableColumnConfig<SampleData, TimeSpan?>("TimeSpan Column", dataGetter: i => i.TimeSpanValue),            ],
-                "Sample Data");
+                    new TableColumnConfig<SampleData, TimeSpan?>("TimeSpan Column", dataGetter: i => i.TimeSpanValue),
+                    new TableColumnConfig<SampleData, long?>("Long Column", dataGetter: i => i.LongValue),
+                    new TableColumnConfig<SampleData, ulong?>("ULong Column", dataGetter: i => i.ULongValue)
+                    ],
+                tableName: "Sample Data");
 
             var builder = new ExcelBuilder();
 
-            var sheetBuilder = builder.AppendSheet("Sampel Data Demo");
+            var sheetBuilder = builder.AppendSheet("Sampel Data Demo", columnWidths: new Dictionary<int, uint> { { 1, 10u } });
 
             sheetBuilder.AddRow("Demo for ExcelBuilder", style: CellStyle.H1, rowOffset: 2);
             sheetBuilder.AddRow("It supports following types:", CellStyle.Emphasize, rowOffset: 2);
@@ -114,8 +118,18 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                 [[DateTime.Now, DateTime.Today, DateTime.UtcNow]],
                 new TableConfig<DateTime[]>([
                     new TableColumnConfig<DateTime[], DateTime>("Default", dataGetter: i => i[0], style: CellStyle.Cell_DateTime_Default),
-                    new TableColumnConfig<DateTime[], DateTime>("UK", dataGetter: i => i[1], style: new CellStyle(numberingStyle: NumberingStyle.Date_UK, cellValueType: DocumentFormat.OpenXml.Spreadsheet.CellValues.Date)),
-                    new TableColumnConfig<DateTime[], DateTime>("US", dataGetter: i => i[2], style: new CellStyle(numberingStyle: NumberingStyle.DateTime_US, cellValueType: DocumentFormat.OpenXml.Spreadsheet.CellValues.Date))]));
+                    new TableColumnConfig<DateTime[], DateTime>("UK", dataGetter: i => i[1], style: CellStyle.Cell_Date_Default.With(numberingStyle: NumberingStyle.Date_UK)),
+                    new TableColumnConfig<DateTime[], DateTime>("US", dataGetter: i => i[2], style: CellStyle.Cell_Date_Default.With(numberingStyle: NumberingStyle.DateTime_US))]));
+
+            sheetBuilder.AddRow("Different number format:", rowOffset: 2, style: CellStyle.Quote);
+            sheetBuilder.AddTable(
+                [[123456789, 1024.4201, 1000000.123m, 0.123]],
+                new TableConfig<object[]>([
+                    new TableColumnConfig<object[], object>("Integer", dataGetter: i => i[0], style: CellStyle.Cell_Integer_Default),
+                    new TableColumnConfig<object[], object>("Integer 2", dataGetter: i => i[0], style: CellStyle.Cell_Integer_Default.With(numberingStyle: NumberingStyle.Integer_Thousands)),
+                    new TableColumnConfig<object[], object>("Decimal", dataGetter: i => i[1], style: CellStyle.Cell_Decimal_Default),
+                    new TableColumnConfig<object[], object>("Decimal with 2 digits", dataGetter: i => i[2], style: CellStyle.Cell_Decimal_Default.With(numberingStyle: NumberingStyle.Decimal_Thousands_2)),
+                    new TableColumnConfig<object[], object>("Percentage", dataGetter: i => i[3], style: CellStyle.Cell_Decimal_Default.With(numberingStyle: NumberingStyle.Percent_1))]));
 
             var tmpFile = IOUtil.GetTempFile(fileExt: ".xlsx");
             try {
