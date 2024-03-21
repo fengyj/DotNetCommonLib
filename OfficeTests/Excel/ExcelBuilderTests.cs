@@ -91,6 +91,8 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
             sheetBuilder.AddRow("It also supports to define table.", style: CellStyle.Emphasize, rowOffset: 2);
             sheetBuilder.AddTable(data, tblCfg, rowOffset: 2);
 
+            sheetBuilder.AddRow(["Here is a hyperlink: ", new HyperLinkValue("http://bing.com", "Bing") ], rowOffset: 2);
+
             sheetBuilder.AddRow("And multiple sheets...", rowOffset: 2, style: CellStyle.Warning);
 
             sheetBuilder = builder.AppendSheet("An empty sheet");
@@ -130,6 +132,8 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                     new TableColumnConfig<object[], object>("Decimal", dataGetter: i => i[1], style: CellStyle.Cell_Decimal_Default),
                     new TableColumnConfig<object[], object>("Decimal with 2 digits", dataGetter: i => i[2], style: CellStyle.Cell_Decimal_Default.With(numberingStyle: NumberingStyle.Decimal_Thousands_2)),
                     new TableColumnConfig<object[], object>("Percentage", dataGetter: i => i[3], style: CellStyle.Cell_Decimal_Default.With(numberingStyle: NumberingStyle.Percent_1))]));
+
+            sheetBuilder.AddRow(["Here is a hyperlink: ", new HyperLinkValue("http://google.com", "Google")], rowOffset: 2);
 
             var tmpFile = IOUtil.GetTempFile(fileExt: ".xlsx");
             try {

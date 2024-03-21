@@ -20,6 +20,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         internal List<string> SheetNames { get; private set; } = [];
         internal List<string> TableNames { get; private set; } = [];
         internal List<string> TablesDefined { get; private set; } = [];
+        internal uint RelationId { get; private set; } = 0;
 
         public SheetBuilder AppendSheet(string sheetName, bool autoColumnWidth = true, uint? maxColumnWidth = 120, Dictionary<int, uint>? columnWidths = null) {
             var sheetBuilder = new SheetBuilder(this, sheetName, autoColumnWidth: autoColumnWidth, maxColumnWidth: maxColumnWidth, columnWidths: columnWidths);
@@ -80,6 +81,10 @@ namespace me.fengyj.CommonLib.Office.Excel {
             return (uint)this.TablesDefined.Count;
         }
 
+        internal string GetNewRelationId() {
+            return $"rId{++RelationId}";
+        }
+
         public static string GetExcelColumnName(string prefix, uint column) {
             return column < 26
                 ? $"{prefix}{(char)('A' + column - 1)}"
@@ -105,6 +110,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
             this.MaxColumnWidth = maxColumnWidth;
             this.ColumnWidths = columnWidths;
 
+            this.HyperlinkBuilder = new HyperlinkBuilder(this);
+
             this.RowBuilderSuppliers = EmptyRowsBuilder;
         }
 
@@ -117,6 +124,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public uint CurrentRowPosition { get; internal set; }
         public Func<IEnumerable<RowBuilder>> RowBuilderSuppliers { get; private set; }
         public List<TableBuilder> TableBuilders { get; private set; } = [];
+        public HyperlinkBuilder HyperlinkBuilder { get; private set; }
 
         public SheetBuilder AddRow(Func<RowBuilder> rowBuilder) {
             return AddRows(() => Enumerable.Repeat(rowBuilder(), 1));
@@ -222,7 +230,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             sheets.Append(sheet);
 
             var sheetData = new SheetData();
-
+            
             this.AddRow(string.Empty); // add a empty cell to the end to avoid the error caused by the empty sheet.
             if (this.RowBuilderSuppliers != null) {
 
@@ -244,8 +252,11 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 SetColumnWidths(sheetPart, sheetData);
             }
 
+            // todo: DO NOT change the order of code below.
 
             sheetPart.Worksheet.Append(sheetData);
+
+            this.HyperlinkBuilder.BuildTo(sheetPart);
 
             this.TableBuilders.ForEach(tb => tb.BuildTo(sheetPart));
         }
@@ -467,17 +478,21 @@ namespace me.fengyj.CommonLib.Office.Excel {
             { typeof(DateTime), System.Tuple.Create(CellStyle.Cell_DateTime_Default, (object obj) => new Cell{CellValue = new ((DateTime)obj)}) },
 
             { typeof(TimeSpan), System.Tuple.Create(CellStyle.Cell_Timespan_Default, (object obj) => new Cell{InlineString = new() { Text = new Text(((TimeSpan)obj).ToString() ?? string.Empty) }}) },
+
+            { typeof(HyperLinkValue), System.Tuple.Create(CellStyle.Hyperlink, (object obj) => new Cell{InlineString = new() { Text = new Text(((HyperLinkValue)obj)?.DisplayName ?? string.Empty) }  }) },
         };
 
         public CellBuilder(RowBuilder rowBuilder, object? cellValue, CellStyle? style = null) {
 
             this.RowBuilder = rowBuilder;
+            this.CellValue = cellValue;
             this.Cell = BuildCell(cellValue, style);
         }
 
         public uint ColumnOffset { get; set; } = 1;
         public RowBuilder RowBuilder { get; private set; }
         public Cell Cell { get; private set; }
+        private object? CellValue { get; set; }
 
         public void BuildTo(Row row) {
 
@@ -485,6 +500,19 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 row.AppendChild(new Cell());
 
             this.RowBuilder.CurrentColumnPosition += this.ColumnOffset;
+
+            if(this.CellValue is HyperLinkValue linkValue) {
+
+                if (!string.IsNullOrWhiteSpace(linkValue.Link)) {
+
+                    linkValue.CellReferenceId = ExcelBuilder.GetExcelCellReference(
+                        this.RowBuilder.SheetBuilder.CurrentRowPosition,
+                        this.RowBuilder.CurrentColumnPosition);
+
+                    this.RowBuilder.SheetBuilder.HyperlinkBuilder.HyperlinkValues.Add(linkValue);
+                }
+            }
+
             row.AppendChild(this.Cell);
         }
 
@@ -561,11 +589,11 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             this.Id = this.SheetBuilder.ExcelBuilder.DefineTableAndGetId(this.TableName);
 
-            var tblId = $"rId{this.Id}";
-            var tblDefPart = worksheetPart.AddNewPart<TableDefinitionPart>(tblId);
+            var tblRefId = this.SheetBuilder.ExcelBuilder.GetNewRelationId();
+            var tblDefPart = worksheetPart.AddNewPart<TableDefinitionPart>(tblRefId);
             var tblRef = ExcelBuilder.GetExcelTableReference(this.RowStart, this.RowEnd, this.ColumnStart, this.ColumnEnd);
             var tbl = new Table { Id = this.Id, Name = this.TableName, DisplayName = this.TableName, Reference = tblRef, TotalsRowShown = HasTotalRow };
-
+            
             var cols = new TableColumns { Count = UInt32Value.FromUInt32((uint)this.Headers.Length) };
             for (int i = 0; i < this.Headers.Length; i++) cols.Append(new TableColumn { Id = (uint)i + this.ColumnStart, Name = this.Headers[i].Trim() });
 
@@ -587,8 +615,37 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 worksheetPart.Worksheet.Append(tblParts);
             }
 
-            var tblPart = new TablePart { Id = tblId };
+            var tblPart = new TablePart { Id = tblRefId };
             tblParts.Append(tblPart);
+        }
+    }
+
+    public class HyperlinkBuilder {
+
+        public HyperlinkBuilder(SheetBuilder sheetBuilder) {
+            this.SheetBuilder = sheetBuilder;
+        }
+
+        public SheetBuilder SheetBuilder { get; private set; }
+        public List<HyperLinkValue> HyperlinkValues { get; set; } = [];
+
+        public void BuildTo(WorksheetPart worksheetPart) {
+
+            if (this.HyperlinkValues == null || this.HyperlinkValues.Count == 0) return;
+
+            var links = worksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault() ?? new Hyperlinks();
+
+            this.HyperlinkValues.ForEach(v => {
+
+                var rId = this.SheetBuilder.ExcelBuilder.GetNewRelationId();
+
+                var link = new Hyperlink { Id = StringValue.FromString(rId), Reference = StringValue.FromString(v.CellReferenceId) };
+                worksheetPart.AddHyperlinkRelationship(new Uri(v.Link), true, rId);
+
+                links.AppendChild(link);
+            });
+
+            worksheetPart.Worksheet.Append(links);
         }
     }
 }

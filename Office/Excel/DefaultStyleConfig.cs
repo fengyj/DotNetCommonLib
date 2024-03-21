@@ -36,6 +36,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public System.Drawing.Color Color_Warning { get; set; } = System.Drawing.Color.Orange;
             public System.Drawing.Color Color_Error { get; set; } = System.Drawing.Color.Red;
             public System.Drawing.Color Color_Quote { get; set; } = System.Drawing.Color.Gray;
+            public System.Drawing.Color Color_Hyperlink { get; set; } = System.Drawing.Color.FromArgb(77, 147, 217); // blue
         }
 
         public class TableConfig {

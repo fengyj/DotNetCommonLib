@@ -78,6 +78,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public static readonly CellStyle TableHeader = new(fontStyle: FontStyle.TableHeader);
 
+        public static readonly CellStyle Hyperlink = new(fontStyle: FontStyle.Hyperlink);
+
         public static readonly CellStyle Cell = new(fontStyle: FontStyle.Normal);
 
         public static readonly CellStyle Cell_Integer_Default = new(
@@ -246,6 +248,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public static readonly FontStyle TableHeader = new(DefaultStyleConfig.Font.Default_Name, DefaultStyleConfig.Font.Default_Size, bold: true, italic: true, color: DefaultStyleConfig.Font.Color_Default);
 
+        public static readonly FontStyle Hyperlink = new(DefaultStyleConfig.Font.Default_Name, DefaultStyleConfig.Font.Default_Size, underline: true, color: DefaultStyleConfig.Font.Color_Hyperlink);
+
         public FontStyle(Font font) {
 
             this.Font = font;
@@ -253,13 +257,14 @@ namespace me.fengyj.CommonLib.Office.Excel {
             TooManyStylesException.Check(styles);
         }
 
-        public FontStyle(string fontName, double fontSize, bool bold = false, bool italic = false, System.Drawing.Color? color = null)
+        public FontStyle(string fontName, double fontSize, bool bold = false, bool italic = false, bool underline = false, System.Drawing.Color? color = null)
             : this(new Font() { 
                 FontName = new () { Val = StringValue.FromString(fontName) }, 
                 FontSize = new () { Val = DoubleValue.FromDouble(fontSize) }, 
                 Color = color.HasValue ? new() { Rgb = GetColor(color.Value) } : null,
-                Bold = bold ? new Bold() : null, 
-                Italic = italic ? new Italic() : null }) {
+                Bold = bold ? new Bold() : null,
+                Italic = italic ? new Italic() : null,
+                Underline = underline ? new Underline() : null}) {
         }
 
         public uint StyleId { get; private set; } = (uint)Interlocked.Increment(ref Seq);
