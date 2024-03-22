@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Data;
 
 namespace me.fengyj.CommonLib.Utils.Data {
     public class DataTableUtil {
@@ -23,7 +18,7 @@ namespace me.fengyj.CommonLib.Utils.Data {
                 for (var i = 0; i < headers.Length; i++) headers[i] = $"Column{i}";
             }
 
-            if(headers == null || headers.Length == 0)
+            if (headers == null || headers.Length == 0)
                 throw new ArgumentException($"The {nameof(values)} cannot be null nor empty when {nameof(headers)} is null.");
 
             var types = new Type[headers.Length];
@@ -44,7 +39,7 @@ namespace me.fengyj.CommonLib.Utils.Data {
             var table = new DataTable();
             if (tableName != null) table.TableName = tableName;
 
-            for (int i = 0; i < headers.Length; i++) {
+            for (var i = 0; i < headers.Length; i++) {
                 table.Columns.Add(new DataColumn(headers[i], types[i]));
             }
 

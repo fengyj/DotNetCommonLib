@@ -6,6 +6,18 @@
     <Nullable>enable</Nullable>
     <RootNamespace>me.fengyj.CommonLib.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
     <AssemblyName>CommonLib.$(MSBuildProjectName)</AssemblyName>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageId>me.fengyj.$(AssemblyName)</PackageId>
+    <Authors>fengyj</Authors>
+    <Product>me.fengyj.$(AssemblyName)</Product>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningLevel>2</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <WarningLevel>2</WarningLevel>
   </PropertyGroup>
 
   <ItemGroup>

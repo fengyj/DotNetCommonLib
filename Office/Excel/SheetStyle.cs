@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Drawing;
 
 using DocumentFormat.OpenXml;
@@ -16,7 +15,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
     public class AlignmentStyle {
 
-        public static readonly AlignmentStyle Left = new () { Horizontal = HorizontalAlignmentValues.Left, Vertical = VerticalAlignmentValues.Center };
+        public static readonly AlignmentStyle Left = new() { Horizontal = HorizontalAlignmentValues.Left, Vertical = VerticalAlignmentValues.Center };
         public static readonly AlignmentStyle Center = new() { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center };
         public static readonly AlignmentStyle Right = new() { Horizontal = HorizontalAlignmentValues.Right, Vertical = VerticalAlignmentValues.Center };
 
@@ -31,11 +30,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
         private static volatile int Seq = -1;
         private static readonly ConcurrentBag<BorderStyle> styles = [];
 
-        public static readonly BorderStyle None = new(new() { 
-            LeftBorder = new(), 
+        public static readonly BorderStyle None = new(new() {
+            LeftBorder = new(),
             TopBorder = new(),
-            RightBorder = new(), 
-            BottomBorder = new() });  // this should be the first one as the default border style
+            RightBorder = new(),
+            BottomBorder = new()
+        });  // this should be the first one as the default border style
         public static readonly BorderStyle All = new(new() {
             LeftBorder = new() { Style = BorderStyleValues.Thin },
             TopBorder = new() { Style = BorderStyleValues.Thin },
@@ -122,8 +122,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public CellStyle(
             NumberingStyle? numberingStyle = null,
-            FontStyle? fontStyle = null, 
-            FillStyle? fillStyle = null, 
+            FontStyle? fontStyle = null,
+            FillStyle? fillStyle = null,
             BorderStyle? borderStyle = null,
             AlignmentStyle? alignmentStyle = null,
             CellValues? cellValueType = null) {
@@ -177,13 +177,13 @@ namespace me.fengyj.CommonLib.Office.Excel {
             if (style != null) return style;
 
             style = new CellStyle(cellValueType: cvt);
-            if(nfId != null) style.CellFormat.NumberFormatId = UInt32Value.FromUInt32(nfId.Value);
+            if (nfId != null) style.CellFormat.NumberFormatId = UInt32Value.FromUInt32(nfId.Value);
             if (ftId != null) style.CellFormat.FontId = UInt32Value.FromUInt32(ftId.Value);
             if (flId != null) style.CellFormat.FillId = UInt32Value.FromUInt32(flId.Value);
             if (bdId != null) style.CellFormat.BorderId = UInt32Value.FromUInt32(bdId.Value);
-            if(align != null) style.CellFormat.Alignment = new Alignment { Horizontal = align.Horizontal, Vertical = align.Vertical };
+            if (align != null) style.CellFormat.Alignment = new Alignment { Horizontal = align.Horizontal, Vertical = align.Vertical };
             if (this.CellFormat.ApplyAlignment != null) style.CellFormat.ApplyAlignment = new BooleanValue(this.CellFormat.ApplyAlignment.Value);
-            return style; 
+            return style;
         }
 
         public static IEnumerable<CellStyle> GetStyles() => styles.OrderBy(s => s.StyleId);
@@ -258,13 +258,14 @@ namespace me.fengyj.CommonLib.Office.Excel {
         }
 
         public FontStyle(string fontName, double fontSize, bool bold = false, bool italic = false, bool underline = false, System.Drawing.Color? color = null)
-            : this(new Font() { 
-                FontName = new () { Val = StringValue.FromString(fontName) }, 
-                FontSize = new () { Val = DoubleValue.FromDouble(fontSize) }, 
+            : this(new Font() {
+                FontName = new() { Val = StringValue.FromString(fontName) },
+                FontSize = new() { Val = DoubleValue.FromDouble(fontSize) },
                 Color = color.HasValue ? new() { Rgb = GetColor(color.Value) } : null,
                 Bold = bold ? new Bold() : null,
                 Italic = italic ? new Italic() : null,
-                Underline = underline ? new Underline() : null}) {
+                Underline = underline ? new Underline() : null
+            }) {
         }
 
         public uint StyleId { get; private set; } = (uint)Interlocked.Increment(ref Seq);
@@ -273,11 +274,13 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public static IEnumerable<FontStyle> GetStyles() => styles.OrderBy(s => s.StyleId).ToList();
 
         private static HexBinaryValue GetColor(System.Drawing.Color color) {
-            return new HexBinaryValue { Value = ColorTranslator.ToHtml(System.Drawing.Color.FromArgb(
+            return new HexBinaryValue {
+                Value = ColorTranslator.ToHtml(System.Drawing.Color.FromArgb(
                           color.A,
                           color.R,
                           color.G,
-                          color.B)).Replace("#", "") };
+                          color.B)).Replace("#", "")
+            };
         }
     }
 
@@ -290,33 +293,33 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         #region default formats
 
-        public static readonly NumberingStyle None = new ();
-                      
-        public static readonly NumberingStyle DateTime_Default = new ("yyyy-mm-dd hh:mm:ss");
-        public static readonly NumberingStyle DateTime_UK = new ("dd/mm/yyyy hh:mm:ss AM/PM");
-        public static readonly NumberingStyle DateTime_US = new ("mm/dd/yyyy hh:mm:ss AM/PM");
-                      
-        public static readonly NumberingStyle Date_Default = new ("yyyy-mm-dd");
-        public static readonly NumberingStyle Date_UK = new ("dd/mm/yyyy");
-        public static readonly NumberingStyle Date_US = new ("mm/dd/yyyy");
-                      
-        public static readonly NumberingStyle Time = new ("hh:mm:ss");
-                      
-        public static readonly NumberingStyle Integer_Default = new ("0");
-        public static readonly NumberingStyle Integer_Thousands = new ("#,##0");
-                      
+        public static readonly NumberingStyle None = new();
+
+        public static readonly NumberingStyle DateTime_Default = new("yyyy-mm-dd hh:mm:ss");
+        public static readonly NumberingStyle DateTime_UK = new("dd/mm/yyyy hh:mm:ss AM/PM");
+        public static readonly NumberingStyle DateTime_US = new("mm/dd/yyyy hh:mm:ss AM/PM");
+
+        public static readonly NumberingStyle Date_Default = new("yyyy-mm-dd");
+        public static readonly NumberingStyle Date_UK = new("dd/mm/yyyy");
+        public static readonly NumberingStyle Date_US = new("mm/dd/yyyy");
+
+        public static readonly NumberingStyle Time = new("hh:mm:ss");
+
+        public static readonly NumberingStyle Integer_Default = new("0");
+        public static readonly NumberingStyle Integer_Thousands = new("#,##0");
+
         public static readonly NumberingStyle Decimal_Default = new("0.0########");
         public static readonly NumberingStyle Decimal_2 = new("0.00");
         public static readonly NumberingStyle Decimal_3 = new("0.000");
         public static readonly NumberingStyle Decimal_4 = new("0.0000");
         public static readonly NumberingStyle Decimal_6 = new("0.000000");
-                      
+
         public static readonly NumberingStyle Decimal_Thousands = new("#,##0.0########");
         public static readonly NumberingStyle Decimal_Thousands_2 = new("#,##0.00");
         public static readonly NumberingStyle Decimal_Thousands_3 = new("#,##0.000");
         public static readonly NumberingStyle Decimal_Thousands_4 = new("#,##0.0000");
         public static readonly NumberingStyle Decimal_Thousands_6 = new("#,##0.000000");
-                      
+
         public static readonly NumberingStyle Percent_Default = new("0.0########%");
         public static readonly NumberingStyle Percent_0 = new("0%");
         public static readonly NumberingStyle Percent_1 = new("0.0%");
@@ -356,7 +359,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
     }
 
     public class TableStyle {
-    
+
         public TableStyle(string? styleName = null, bool showHeader = true, bool showRowStripes = true, bool showColumnStripes = false) {
             this.TableStyleInfo = new() { Name = styleName ?? DefaultStyleConfig.Table.TableStyle_Default, ShowColumnStripes = showColumnStripes, ShowRowStripes = showRowStripes };
             this.ShowHeader = showHeader;
@@ -369,8 +372,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
     /// Exception for remindering if adding too many styles by accident.
     /// If it's necessary, can set <see cref="TooManyStylesException.DisableAlert"/> to disable the alert.
     /// </summary>
-    public class TooManyStylesException : ApplicationException { 
-        public TooManyStylesException() : 
+    public class TooManyStylesException : ApplicationException {
+        public TooManyStylesException() :
             base("Too many styles have been added, please confirm this is necessary.") { }
 
         /// <summary>
@@ -380,7 +383,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public static void Check(System.Collections.ICollection styles) {
 
-            if (!DisableAlert && styles != null && styles.Count > 256) 
+            if (!DisableAlert && styles != null && styles.Count > 256)
                 throw new TooManyStylesException();
         }
     }

@@ -1,16 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using DocumentFormat.OpenXml.Packaging;
+﻿using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace me.fengyj.CommonLib.Office.Excel
-{
-    public class SheetStyleBuilder
-    {
+namespace me.fengyj.CommonLib.Office.Excel {
+    public class SheetStyleBuilder {
         public static void BuildTo(WorkbookPart workbookPart) {
 
             var style = new Stylesheet();
@@ -20,7 +12,7 @@ namespace me.fengyj.CommonLib.Office.Excel
             style.Append(formats);
 
             var fonts = new Fonts();
-                fonts.Append(SheetStyle.GetFontStyles().Select(i => i.Font.CloneNode(true))); // the items cannot be added to different spreadsheet, so need to clone them
+            fonts.Append(SheetStyle.GetFontStyles().Select(i => i.Font.CloneNode(true))); // the items cannot be added to different spreadsheet, so need to clone them
             style.Append(fonts);
 
             var fills = new Fills();

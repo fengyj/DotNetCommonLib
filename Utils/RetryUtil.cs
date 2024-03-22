@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace me.fengyj.CommonLib.Utils {
+﻿namespace me.fengyj.CommonLib.Utils {
 
     public class RetryUtil {
 
@@ -64,7 +56,7 @@ namespace me.fengyj.CommonLib.Utils {
             throw new ApplicationException(); // just for fixing the compile error 
         }
 
-        public static async Task<T> ExecuteAsync<T, E>(Task<T> task, RetryPolicy policy, Action<E, int> exceptionHandler) 
+        public static async Task<T> ExecuteAsync<T, E>(Task<T> task, RetryPolicy policy, Action<E, int> exceptionHandler)
             where E : Exception {
 
             for (var t = 1; t <= policy.MaxRetryTimes; t++) {
@@ -87,7 +79,7 @@ namespace me.fengyj.CommonLib.Utils {
 
         public static async Task<T> ExecuteAsync<T, E1, E2>(Task<T> task, RetryPolicy policy, Action<E1, int> exceptionHandlerForE1, Action<E2, int> exceptionHandlerForE2)
             where E1 : Exception
-            where E2: Exception {
+            where E2 : Exception {
 
             CheckExceptionTypes(typeof(E1), typeof(E2));
 

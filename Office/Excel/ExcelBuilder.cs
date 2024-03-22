@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Data;
 
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -52,7 +46,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             var builder = new ExcelBuilder();
 
-            int sheetIdx = 1;
+            var sheetIdx = 1;
             foreach (DataTable tbl in dataset.Tables) {
                 var sheetName = string.IsNullOrWhiteSpace(tbl.TableName) || tbl.TableName.Equals("Table", StringComparison.OrdinalIgnoreCase)
                     ? $"Sheet{sheetIdx++}"
@@ -82,7 +76,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         }
 
         internal string GetNewRelationId() {
-            return $"rId{++RelationId}";
+            return $"rId{++this.RelationId}";
         }
 
         public static string GetExcelColumnName(string prefix, uint column) {
@@ -127,15 +121,15 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public HyperlinkBuilder HyperlinkBuilder { get; private set; }
 
         public SheetBuilder AddRow(Func<RowBuilder> rowBuilder) {
-            return AddRows(() => Enumerable.Repeat(rowBuilder(), 1));
+            return this.AddRows(() => Enumerable.Repeat(rowBuilder(), 1));
         }
 
         public SheetBuilder AddRow(IEnumerable<object> values, CellStyle? style = null, uint rowOffset = 1, uint colOffset = 1) {
-            return AddRow(() => CreateRowBuilder(rowOffset: rowOffset).AddCells(values, cellStyle: style, colOffset: colOffset));
+            return this.AddRow(() => this.CreateRowBuilder(rowOffset: rowOffset).AddCells(values, cellStyle: style, colOffset: colOffset));
         }
 
         public SheetBuilder AddRow(object value, CellStyle? style = null, uint rowOffset = 1, uint colOffset = 1) {
-            return AddRow(() => CreateRowBuilder(rowOffset: rowOffset).AddCell(value, cellStyle: style, colOffset: colOffset));
+            return this.AddRow(() => this.CreateRowBuilder(rowOffset: rowOffset).AddCell(value, cellStyle: style, colOffset: colOffset));
         }
 
         public SheetBuilder AddRows(Func<IEnumerable<RowBuilder>> rowsBuilder) {
@@ -152,8 +146,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public SheetBuilder AddRows(IEnumerable<object> values, uint rowOffset = 1, uint colOffset = 1) {
 
-            return AddRows(() => values.Select((r, idx) => {
-                var rb = CreateRowBuilder(rowOffset: idx == 0 ? rowOffset : 1);
+            return this.AddRows(() => values.Select((r, idx) => {
+                var rb = this.CreateRowBuilder(rowOffset: idx == 0 ? rowOffset : 1);
                 if (r is IEnumerable<object> cs) return rb.AddCell(cs, colOffset: colOffset);
                 else return rb.AddCell(r, colOffset: colOffset);
             }));
@@ -172,7 +166,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
 
-            AddRows(() => CreateTable(
+            this.AddRows(() => this.CreateTable(
                 data.Select(i => config.Columns.Select(c => c.GetDataObject(i))),
                 config: config,
                 rowOffset: rowOffset,
@@ -191,7 +185,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             uint colOffset = 1) {
 
             var columns = new List<ITableColumnConfig<DataRow>>();
-            int colIdx = -1;
+            var colIdx = -1;
             foreach (DataColumn c in dataTable.Columns) {
 
                 colIdx++;
@@ -207,8 +201,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
             }
 
             var tblConfig = new TableConfig<DataRow>(columns, style: tableStyle);
-            var data = GetTableData(dataTable);
-            return AddTable(data, config: tblConfig, rowOffset: rowOffset, colOffset: colOffset);
+            var data = this.GetTableData(dataTable);
+            return this.AddTable(data, config: tblConfig, rowOffset: rowOffset, colOffset: colOffset);
         }
 
         public void BuildTo(SpreadsheetDocument workbook) {
@@ -226,11 +220,11 @@ namespace me.fengyj.CommonLib.Office.Excel {
             var sheetId = sheets.Elements<Sheet>().Select(s => s.SheetId?.Value).DefaultIfEmpty(0u).Max() + 1;
             var sheetName = this.SheetNameForBuild;
 
-            var sheet = new Sheet { Id = relationshipId, SheetId = sheetId, Name = SheetName };
+            var sheet = new Sheet { Id = relationshipId, SheetId = sheetId, Name = this.SheetName };
             sheets.Append(sheet);
 
             var sheetData = new SheetData();
-            
+
             this.AddRow(string.Empty); // add a empty cell to the end to avoid the error caused by the empty sheet.
             if (this.RowBuilderSuppliers != null) {
 
@@ -249,7 +243,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                         lastBuilder?.BuildTo(sheetData);
                 }
 
-                SetColumnWidths(sheetPart, sheetData);
+                this.SetColumnWidths(sheetPart, sheetData);
             }
 
             // todo: DO NOT change the order of code below.
@@ -273,7 +267,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                 endCol = (uint)(startCol - 1 + config.Columns.Count);
 
-                yield return CreateRowBuilder(rowOffset: rowOffset).AddCells(
+                yield return this.CreateRowBuilder(rowOffset: rowOffset).AddCells(
                     config.Columns.Select((c, idx) => c.ColumnName ?? $"Column {idx + 1}"),
                     cellStyle: CellStyle.TableHeader,
                     colOffset: colOffset);
@@ -285,7 +279,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                 var ro = hasHeader ? 1 : rowOffset;
                 foreach (var r in data) {
-                    lastRowBuilder = CreateRowBuilder(rowOffset: ro);
+                    lastRowBuilder = this.CreateRowBuilder(rowOffset: ro);
                     lastRowBuilder.AddCells(() => r.Select((i, idx) => new CellBuilder(lastRowBuilder, i, config?.Columns?[idx].CellStyle) {
                         ColumnOffset = idx == 0 ? colOffset : 1
                     }));
@@ -298,7 +292,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             if (hasHeader && lastRowBuilder == null) { // means no data, need to create an empty row to avoid the error to create the table
 
-                lastRowBuilder = CreateRowBuilder(rowOffset: 1);
+                lastRowBuilder = this.CreateRowBuilder(rowOffset: 1);
                 lastRowBuilder.AddCells(new object[endCol - startCol + 1], colOffset: colOffset);
                 yield return lastRowBuilder;
             }
@@ -351,7 +345,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             var lengths = new Dictionary<int, uint>();
             var maxRowsToCheck = 100; // avoid to cost too much time on it
-            int rowIdx = 0;
+            var rowIdx = 0;
 
             foreach (var row in sheetData.Elements<Row>()) {
 
@@ -377,13 +371,13 @@ namespace me.fengyj.CommonLib.Office.Excel {
             return lengths.OrderBy(i => i.Key)
                 .Select(i => i.Value)
                 .Select(i => {
-                    if (i < 5) return 12;
-                    else if (i < 10) return i * 1.5;
-                    else if (i < 25) return i * 1.2;
-                    else if (i < 40) return i * 1.1;
+                    if (i <= 5) return 10;
+                    else if (i <= 10) return i * 1.5;
+                    else if (i <= 25) return i * 1.2;
+                    else if (i <= 40) return i * 1.1;
                     else return i * 1.05;
                 })
-                .Select(i => (uint)(Math.Truncate(i)))
+                .Select(i => (uint)(Math.Ceiling(i)))
                 .ToList();
         }
     }
@@ -393,7 +387,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         private Func<IEnumerable<CellBuilder>> EmptyCellsBuilder = () => [];
         public RowBuilder(SheetBuilder sheetBuilder) {
             this.SheetBuilder = sheetBuilder;
-            this.CellBuilderSuppliers = EmptyCellsBuilder;
+            this.CellBuilderSuppliers = this.EmptyCellsBuilder;
         }
 
         public SheetBuilder SheetBuilder { get; private set; }
@@ -402,7 +396,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public Func<IEnumerable<CellBuilder>> CellBuilderSuppliers { get; private set; }
 
         public RowBuilder AddCells(Func<IEnumerable<CellBuilder>> cellBuilderSupplier) {
-            if (this.CellBuilderSuppliers == EmptyCellsBuilder) {
+            if (this.CellBuilderSuppliers == this.EmptyCellsBuilder) {
                 this.CellBuilderSuppliers = cellBuilderSupplier;
             }
             else {
@@ -416,7 +410,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             if (values == null) return this;
 
-            return AddCells(() => values.Select((v, idx) => {
+            return this.AddCells(() => values.Select((v, idx) => {
                 var cb = new CellBuilder(this, v, style: cellStyle);
                 if (idx == 0) cb.ColumnOffset = colOffset;
                 return cb;
@@ -424,11 +418,11 @@ namespace me.fengyj.CommonLib.Office.Excel {
         }
 
         public RowBuilder AddCell(CellBuilder cellBuilder) {
-            return AddCells(() => Enumerable.Repeat(cellBuilder, 1));
+            return this.AddCells(() => Enumerable.Repeat(cellBuilder, 1));
         }
 
         public RowBuilder AddCell(object cellValue, CellStyle? cellStyle = null, uint colOffset = 1) {
-            return AddCells(() => Enumerable.Repeat(cellValue, 1).Select(v => {
+            return this.AddCells(() => Enumerable.Repeat(cellValue, 1).Select(v => {
                 var cb = new CellBuilder(this, v, style: cellStyle);
                 cb.ColumnOffset = colOffset;
                 return cb;
@@ -486,7 +480,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             this.RowBuilder = rowBuilder;
             this.CellValue = cellValue;
-            this.Cell = BuildCell(cellValue, style);
+            this.Cell = this.BuildCell(cellValue, style);
         }
 
         public uint ColumnOffset { get; set; } = 1;
@@ -501,7 +495,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             this.RowBuilder.CurrentColumnPosition += this.ColumnOffset;
 
-            if(this.CellValue is HyperLinkValue linkValue) {
+            if (this.CellValue is HyperLinkValue linkValue) {
 
                 if (!string.IsNullOrWhiteSpace(linkValue.Link)) {
 
@@ -522,7 +516,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             if (obj == null) return new Cell() { StyleIndex = cellStyle.StyleId, DataType = cellStyle.CellValueType };
 
-            object val = obj;
+            var val = obj;
             var cellGetter = defaultCellGetter;
 
             if (DefaultCellBuilders.TryGetValue(val.GetType(), out var item)) {
@@ -567,7 +561,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             this.Headers = headers ?? new string[colEnd - colStart + 1];
             this.HasHeader = style?.ShowHeader ?? headers != null;
-            for (int i = 0; i < this.Headers.Length; i++)
+            for (var i = 0; i < this.Headers.Length; i++)
                 if (string.IsNullOrWhiteSpace(this.Headers[i])) this.Headers[i] = $"Column {i + 1}";
         }
 
@@ -592,17 +586,17 @@ namespace me.fengyj.CommonLib.Office.Excel {
             var tblRefId = this.SheetBuilder.ExcelBuilder.GetNewRelationId();
             var tblDefPart = worksheetPart.AddNewPart<TableDefinitionPart>(tblRefId);
             var tblRef = ExcelBuilder.GetExcelTableReference(this.RowStart, this.RowEnd, this.ColumnStart, this.ColumnEnd);
-            var tbl = new Table { Id = this.Id, Name = this.TableName, DisplayName = this.TableName, Reference = tblRef, TotalsRowShown = HasTotalRow };
-            
-            var cols = new TableColumns { Count = UInt32Value.FromUInt32((uint)this.Headers.Length) };
-            for (int i = 0; i < this.Headers.Length; i++) cols.Append(new TableColumn { Id = (uint)i + this.ColumnStart, Name = this.Headers[i].Trim() });
+            var tbl = new Table { Id = this.Id, Name = this.TableName, DisplayName = this.TableName, Reference = tblRef, TotalsRowShown = this.HasTotalRow };
 
-            if (HasHeader)
+            var cols = new TableColumns { Count = UInt32Value.FromUInt32((uint)this.Headers.Length) };
+            for (var i = 0; i < this.Headers.Length; i++) cols.Append(new TableColumn { Id = (uint)i + this.ColumnStart, Name = this.Headers[i].Trim() });
+
+            if (this.HasHeader)
                 tbl.Append(new AutoFilter { Reference = tblRef });
 
             tbl.Append(cols);
 
-            if (!this.HasHeader) 
+            if (!this.HasHeader)
                 tbl.HeaderRowCount = UInt32Value.FromUInt32(0);
 
             tbl.Append(this.Style.TableStyleInfo);

@@ -1,13 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using me.fengyj.CommonLib.Office.Excel;
+﻿using me.fengyj.CommonLib.Office.Excel;
 using me.fengyj.CommonLib.Utils;
-
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace me.fengyj.CommonLib.OfficeTests.Excel {
 
@@ -62,7 +54,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                         TimeSpanValue = TimeSpan.FromSeconds(34561)
                     }
                 ];
-            int id = 1;
+            var id = 1;
             var tblCfg = new TableConfig<SampleData>([
                     new TableColumnConfig<SampleData, string>("ID Column", dataGetter: i => id++.ToString()),
                     new TableColumnConfig<SampleData, string?>("String Column", dataGetter: i => i.StringValue),
@@ -91,7 +83,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
             sheetBuilder.AddRow("It also supports to define table.", style: CellStyle.Emphasize, rowOffset: 2);
             sheetBuilder.AddTable(data, tblCfg, rowOffset: 2);
 
-            sheetBuilder.AddRow(["Here is a hyperlink: ", new HyperLinkValue("http://bing.com", "Bing") ], rowOffset: 2);
+            sheetBuilder.AddRow(["Here is a hyperlink: ", new HyperLinkValue("http://bing.com", "Bing")], rowOffset: 2);
 
             sheetBuilder.AddRow("And multiple sheets...", rowOffset: 2, style: CellStyle.Warning);
 
@@ -112,7 +104,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                 [[(object)"abc", (object)123], ["def", 456], [null, 42533]],
                 new TableConfig<object[]>([
                     new TableColumnConfig<object[], object>("Col_1", dataGetter: i => i[0]),
-                    new TableColumnConfig<object[], object>("Col_2", dataGetter: i => i[1])], 
+                    new TableColumnConfig<object[], object>("Col_2", dataGetter: i => i[1])],
                 style: new TableStyle(styleName: "TableStyleMedium3")));
 
             sheetBuilder.AddRow("Different date format:", rowOffset: 2, style: CellStyle.Quote);

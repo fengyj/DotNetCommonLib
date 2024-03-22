@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace me.fengyj.CommonLib.Utils {
+﻿namespace me.fengyj.CommonLib.Utils {
     public class StringUtil {
 
         public static string TryAddOrGetNewNameIfDuplicated(ICollection<string> list, string name, int maxLength = int.MaxValue, string concatStr = "") {
 
             if (string.IsNullOrEmpty(name)) throw new ArgumentException("The parameter cannot be null nor empty.", nameof(name));
-            
+
             var strTrimmed = name.Length < maxLength ? name : name[..maxLength];
 
             if (!list.Contains(strTrimmed)) {

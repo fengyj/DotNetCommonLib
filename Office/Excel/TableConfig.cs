@@ -1,8 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-
-using DocumentFormat.OpenXml.Spreadsheet;
-
-namespace me.fengyj.CommonLib.Office.Excel {
+﻿namespace me.fengyj.CommonLib.Office.Excel {
     public class TableConfig<T> {
 
         public TableConfig(List<ITableColumnConfig<T>> columns, string? tableName = null, TableStyle? style = null) {
@@ -18,11 +14,11 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public void Verify() {
 
             if (this.Columns == null || this.Columns.Count == 0)
-                throw new InvalidDataException($"The {nameof(Columns)} cannot be null nor empty.");
+                throw new InvalidDataException($"The {nameof(this.Columns)} cannot be null nor empty.");
 
             foreach (var i in this.Columns)
                 if (string.IsNullOrWhiteSpace(i.ColumnName))
-                    throw new InvalidDataException($"The {nameof(i.ColumnName)} of {nameof(Columns)} cannot be null nor empty.");
+                    throw new InvalidDataException($"The {nameof(i.ColumnName)} of {nameof(this.Columns)} cannot be null nor empty.");
 
             var groupByName = this.Columns.GroupBy(i => i.ColumnName);
             foreach (var g in groupByName)
@@ -61,7 +57,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public Type? DataType { get; set; }
         public Func<T, C?>? DataGetter { get; private set; }
 
-        public bool HasDataGetter => DataGetter != null;
+        public bool HasDataGetter => this.DataGetter != null;
 
         public object? GetDataObject(T t) {
             if (this.DataGetter == null || t == null) return default(C);

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using me.fengyj.CommonLib.Utils.Data;
+﻿using me.fengyj.CommonLib.Utils.Data;
 
 namespace UtilsTests.Data {
 
@@ -38,7 +32,7 @@ namespace UtilsTests.Data {
                 table = DataTableUtil.CreateTable(null);
                 Assert.Fail("The code above should throw exception.");
             }
-            catch(ArgumentException ex) { }
+            catch (ArgumentException) { }
         }
     }
 }
