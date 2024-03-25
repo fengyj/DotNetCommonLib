@@ -1,18 +1,15 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using me.fengyj.CommonLib.Data;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
 
 namespace me.fengyj.CommonLib.Data.Tests {
     [TestClass()]
     public class Class1Tests {
         [TestMethod()]
         public void Test_method1() {
-            Assert.Fail();
+
+            var regex = new Regex("\\{(?<id>\\d+)\\}");
+
+            var matches = regex.Matches("sfsf {1}, sfdsfsfs{2}, fsdfsdf{1}");
+            Assert.IsNotNull(matches);
         }
     }
 }
