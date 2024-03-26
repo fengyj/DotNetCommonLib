@@ -159,7 +159,7 @@ namespace me.fengyj.CommonLib.Utils.App {
             var matches = highlightRegex.Matches(str);
 
             var idx = 0;
-            var nameOfIndices = names?.Select((i, idx) => Tuple.Create(i, idx)).ToDictionary(i => i.Item1, i => i.Item2);
+            var nameOfIndices = names?.Select((i, idxOfI) => Tuple.Create(i, idxOfI)).ToDictionary(i => i.Item1, i => i.Item2);
 
             var foreColorOfMatch = foreColors?[1 % foreColors.Length];
             var backColorOfMatch = backColors?[1 % backColors.Length];
