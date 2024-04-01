@@ -17,7 +17,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             this.doc = SpreadsheetDocument.Open(filePath, false);
         }
 
-        public IEnumerable<T> Read(
+        public IEnumerable<Record> Read(
             Config config,
             T? reused = default) {
 
@@ -33,113 +33,100 @@ namespace me.fengyj.CommonLib.Office.Excel {
 #pragma warning restore CS8629 // Nullable value type may be null.
             var isReadViaTableColumns = config.Deserializers.Count != dict.Count; // if not equal, means there are some deserializers don't provide the columnIndex.
 
-            using (var reader = OpenXmlReader.Create(sheetPart)) {
+            var rec = new Record();
 
-                var currentRowIdx = 0u;
-                var currentColIdx = 0u;
+            using var reader = OpenXmlReader.Create(sheetPart);
+            var currentRowIdx = 0u;
+            var currentColIdx = 0u;
 
-                T? rec = default;
+            while (reader.Read()) {
 
-                while (reader.Read()) {
+                if (reader.ElementType == typeof(Row)) {
 
-                    if (reader.ElementType == typeof(Row)) {
+                    if (reader.IsStartElement) {
 
-                        if (reader.IsStartElement) {
+                        var rowId = GetRowId(reader);
+                        if (rowId != null)
+                            for (var i = currentRowIdx + 1; i < rowId; i++)
+                                currentRowIdx++;
 
-                            var rowId = GetRowId(reader);
-                            if (rowId != null) {
-                                for (var i = currentRowIdx + 1; i < rowId; i++) {
-
-                                    currentRowIdx++;
-                                    currentColIdx = 0; // reset col idx, because it's a new row now.
-
-                                    // return an empty record.
-                                    // because user cannot distinglish the row in the sheet is not existed nor an empty row,
-                                    // to avoid the confusion, always return an empty record.
-                                    var rowCanReturn = isReadViaTableColumns ? (currentRowIdx > config.Area.IndexOfRowBegin) : (currentRowIdx >= config.Area.IndexOfRowBegin);
-                                    if (rowCanReturn) {
-
-                                        rec = reused ?? config.RecordBuilder(currentRowIdx);
-                                        yield return rec;
-                                    }
-                                }
-                            }
-
-                            currentRowIdx++;
-                            currentColIdx = 0; // reset col idx, because it's a new row now.
-                            if (!isReadViaTableColumns)
-                                rec = reused ?? config.RecordBuilder(currentRowIdx);
-                        }
-                        else {
-                            // check if needs to skip the header row
-                            var rowCanReturn = isReadViaTableColumns ? (currentRowIdx > config.Area.IndexOfRowBegin) : (currentRowIdx >= config.Area.IndexOfRowBegin);
-                            if (rowCanReturn && currentColIdx >= config.Area.IndexOfColumnBegin)
-                                if (rec != null)
-                                    yield return rec;
-
-                            if (config.Area.IndexOfRowEnd.HasValue && currentRowIdx >= config.Area.IndexOfRowEnd.Value) break;
-                        }
+                        currentRowIdx++;
+                        currentColIdx = 0; // reset col idx, because it's a new row now.
+                        if (!isReadViaTableColumns)
+                            rec = (rec ?? new Record()).GetReusedOrCreateNew(currentRowIdx, reused, () => config.RecordBuilder(currentRowIdx));
                     }
-                    else if (reader.ElementType == typeof(Cell) && reader.IsStartElement && rec != null) {
+                    else {
+                        // check if needs to skip the header row
+                        var rowCanReturn = isReadViaTableColumns ? (currentRowIdx > config.Area.IndexOfRowBegin) : (currentRowIdx >= config.Area.IndexOfRowBegin);
+                        if (rowCanReturn && currentColIdx >= config.Area.IndexOfColumnBegin)
+                            if (rec != null)
+                                yield return rec;
 
-                        var el = reader.LoadCurrentElement();
-                        if (el is not Cell) continue;
-                        var cell = el as Cell;
-
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                        var cellRef = cell.CellReference?.Value;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                        var colId = GetCellColumn(cellRef);
-                        if (colId.HasValue) {
-                            // in case the cells are not filled to each column
-                            while (currentColIdx < colId.Value - 1) {
-
-                                currentColIdx++;
-
-                                if (currentRowIdx < config.Area.IndexOfRowBegin || currentColIdx < config.Area.IndexOfColumnBegin) continue;
-                                if (config.Area.IndexOfColumnEnd.HasValue && currentColIdx > config.Area.IndexOfColumnEnd.Value) continue;
-
-                                if (dict.TryGetValue(currentColIdx, out var deserializers)) {
-                                    deserializers.ForEach(d => d.DeserializeTo(rec, EmptyCell, this));
-                                }
-                                else if (config.DefaultSetter != null) {
-                                    config.DefaultSetter(rec, currentColIdx, this.GetStringCellValue(EmptyCell));
-                                }
-                            }
-                        }
-
-                        currentColIdx++;
-
-                        if (currentRowIdx < config.Area.IndexOfRowBegin || currentColIdx < config.Area.IndexOfColumnBegin) continue;
-                        if (config.Area.IndexOfColumnEnd.HasValue && currentColIdx > config.Area.IndexOfColumnEnd.Value) continue;
-
-                        if (isReadViaTableColumns && currentRowIdx == config.Area.IndexOfRowBegin) {
-                            var name = cell.CellValue?.InnerText;
-                            var matched = config.Deserializers.Where(d => d.ColumnName == name && !d.ColumnIndex.HasValue);
-                            foreach (var d in matched) {
-                                d.ColumnIndex = currentColIdx;
-                                d.ColumnName = ExcelUtil.GetColumnName(currentColIdx);
-                                if (dict.TryGetValue(currentColIdx, out var lst)) lst.Add(d);
-                                else dict.Add(currentColIdx, new List<DataDeserializer> { d });
-                            }
-                        }
-                        else if (dict.TryGetValue(currentColIdx, out var deserializers)) {
-                            deserializers.ForEach(d => d.DeserializeTo(rec, cell, this));
-                        }
-                        else if (config.DefaultSetter != null) {
-                            config.DefaultSetter(rec, currentColIdx, this.GetStringCellValue(cell));
-                        }
+                        if (config.Area.IndexOfRowEnd.HasValue && currentRowIdx >= config.Area.IndexOfRowEnd.Value) break;
                     }
                 }
+                else if (reader.ElementType == typeof(Cell) && reader.IsStartElement && rec != null) {
 
-                config.Area.IndexOfRowEnd = currentRowIdx;
+                    var el = reader.LoadCurrentElement();
+                    if (el is not Cell) continue;
+                    var cell = el as Cell;
+
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                    var cellRef = cell.CellReference?.Value;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                    var colId = GetCellColumn(cellRef);
+                    if (colId.HasValue) {
+                        // in case the cells are not filled to each column
+                        while (currentColIdx < colId.Value - 1) {
+
+                            currentColIdx++;
+
+                            if (currentRowIdx < config.Area.IndexOfRowBegin || currentColIdx < config.Area.IndexOfColumnBegin) continue;
+                            if (config.Area.IndexOfColumnEnd.HasValue && currentColIdx > config.Area.IndexOfColumnEnd.Value) continue;
+
+                            if (dict.TryGetValue(currentColIdx, out var deserializers)) {
+                                deserializers.ForEach(d => d.DeserializeTo(rec, EmptyCell, this));
+                            }
+                            else if (config.DefaultSetter != null && rec.Data != null) {
+                                config.DefaultSetter(rec.Data, currentColIdx, this.GetStringCellValue(EmptyCell));
+                            }
+                        }
+                    }
+
+                    currentColIdx++;
+
+                    if (currentRowIdx < config.Area.IndexOfRowBegin || currentColIdx < config.Area.IndexOfColumnBegin) continue;
+                    if (config.Area.IndexOfColumnEnd.HasValue && currentColIdx > config.Area.IndexOfColumnEnd.Value) continue;
+
+                    if (isReadViaTableColumns && currentRowIdx == config.Area.IndexOfRowBegin) {
+                        var name = cell.CellValue?.InnerText;
+                        var matched = config.Deserializers.Where(d => d.ColumnName == name && !d.ColumnIndex.HasValue);
+                        foreach (var d in matched) {
+                            d.ColumnIndex = currentColIdx;
+                            d.ColumnName = ExcelUtil.GetColumnName(currentColIdx);
+                            if (dict.TryGetValue(currentColIdx, out var lst)) lst.Add(d);
+                            else dict.Add(currentColIdx, [d]);
+                        }
+                    }
+                    else if (dict.TryGetValue(currentColIdx, out var deserializers)) {
+                        deserializers.ForEach(d => d.DeserializeTo(rec, cell, this));
+                    }
+                    else if (config.DefaultSetter != null && rec.Data != null) {
+                        config.DefaultSetter(rec.Data, currentColIdx, this.GetStringCellValue(cell));
+                    }
+                }
             }
+
+            config.Area.IndexOfRowEnd = currentRowIdx;
         }
 
         public string? GetStringCellValue(Cell cell) {
 
             if (cell.DataType?.Value == CellValues.SharedString) {
                 return int.TryParse(cell.CellValue?.InnerText, out var sid) ? this.GetSharedString(sid) : null;
+            }
+            else if (cell.DataType?.Value == CellValues.InlineString) {
+                return cell.InlineString?.InnerText;
             }
             else {
                 return cell == EmptyCell ? null : cell.CellValue?.InnerText;
@@ -267,7 +254,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             public string? TableColumnName { get; set; }
 
-            public abstract void DeserializeTo(T data, Cell cell, ExcelDataReader<T> reader);
+            public abstract void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader);
         }
 
         public class TextDeserializer : DataDeserializer {
@@ -290,10 +277,13 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             public Action<T, string?> ValueSetter { get; private set; }
             public string? DefaultValue { get; private set; }
-            public override void DeserializeTo(T data, Cell cell, ExcelDataReader<T> reader) {
+            public override void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader) {
 
                 var val = reader.GetStringCellValue(cell);
-                this.ValueSetter(data, val ?? this.DefaultValue);
+                if (rec.Data != null)
+                    this.ValueSetter(rec.Data, val ?? this.DefaultValue);
+                else
+                    rec.Error = "Data is not initialized.";
             }
         }
 
@@ -385,26 +375,46 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public DateTime? DefaultValue { get; private set; }
             public Func<string?, DateTime?> Parser { get; private set; }
 
-            public override void DeserializeTo(T data, Cell cell, ExcelDataReader<T> reader) {
+            public override void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader) {
+
+                if (rec.Data == null) {
+                    rec.Error = "Data is not initialized.";
+                    return;
+                }
 
                 if (cell.DataType?.Value == CellValues.Date) {
 
-                    if (DateTime.TryParse(cell.CellValue?.InnerText, out var date))
-                        this.ValueSetter(data, date);
+                    if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else if (DateTime.TryParse(cell.CellValue?.InnerText, out var date))
+                        this.ValueSetter(rec.Data, date);
                     else
-                        this.ValueSetter(data, this.DefaultValue);
+                        rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to a DateTime value.");
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
+                    var str = reader.GetStringCellValue(cell);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
-                        this.ValueSetter(data, DateTime.FromOADate(d));
-                    else
-                        this.ValueSetter(data, this.Parser(reader.GetStringCellValue(cell)) ?? this.DefaultValue);
+                        this.ValueSetter(rec.Data, DateTime.FromOADate(d));
+                    else if (string.IsNullOrEmpty(str))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else {
+                        var val = this.Parser(str);
+                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a DateTime value.");
+                    }
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    this.ValueSetter(data, this.Parser(reader.GetStringCellValue(cell)) ?? this.DefaultValue);
+                    var str = reader.GetStringCellValue(cell);
+                    if (string.IsNullOrWhiteSpace(str))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else {
+                        var val = this.Parser(str);
+                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a DateTime value.");
+                    }
                 }
             }
         }
@@ -438,26 +448,46 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public TimeSpan? DefaultValue { get; private set; }
             public Func<string?, TimeSpan?> Parser { get; private set; }
 
-            public override void DeserializeTo(T data, Cell cell, ExcelDataReader<T> reader) {
+            public override void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader) {
+
+                if (rec.Data == null) {
+                    rec.Error = "Data is not initialized.";
+                    return;
+                }
 
                 if (cell.DataType?.Value == CellValues.Date) {
 
-                    if (DateTime.TryParse(cell.CellValue?.InnerText, out var date))
-                        this.ValueSetter(data, date.TimeOfDay);
+                    if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else if (DateTime.TryParse(cell.CellValue?.InnerText, out var date))
+                        this.ValueSetter(rec.Data, date.TimeOfDay);
                     else
-                        this.ValueSetter(data, this.DefaultValue);
+                        rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to TimeSpan value.");
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
+                    var str = reader.GetStringCellValue(cell);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
-                        this.ValueSetter(data, DateTime.FromOADate(d).TimeOfDay);
-                    else
-                        this.ValueSetter(data, this.Parser(reader.GetStringCellValue(cell)) ?? this.DefaultValue);
+                        this.ValueSetter(rec.Data, DateTime.FromOADate(d).TimeOfDay);
+                    else if (string.IsNullOrEmpty(str))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else {
+                        var val = this.Parser(str);
+                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a TimeSpan value.");
+                    }
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    this.ValueSetter(data, this.Parser(reader.GetStringCellValue(cell)) ?? this.DefaultValue);
+                    var str = reader.GetStringCellValue(cell);
+                    if (string.IsNullOrWhiteSpace(str))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else {
+                        var val = this.Parser(str);
+                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a TimeSpan value.");
+                    }
                 }
             }
         }
@@ -491,26 +521,46 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public bool? DefaultValue { get; private set; }
             public Func<string?, bool?> Parser { get; private set; }
 
-            public override void DeserializeTo(T data, Cell cell, ExcelDataReader<T> reader) {
+            public override void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader) {
+
+                if (rec.Data == null) {
+                    rec.Error = "Data is not initialized.";
+                    return;
+                }
 
                 if (cell.DataType?.Value == CellValues.Boolean) {
 
-                    if (bool.TryParse(cell.CellValue?.InnerText, out var b))
-                        this.ValueSetter(data, b);
+                    if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else if (bool.TryParse(cell.CellValue?.InnerText, out var b))
+                        this.ValueSetter(rec.Data, b);
                     else
-                        this.ValueSetter(data, this.DefaultValue);
+                        rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to Boolean value.");
                 }
-                else if (cell.DataType?.Value == CellValues.Number) {
+                else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
+                    var str = reader.GetStringCellValue(cell);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
-                        this.ValueSetter(data, d != 0);
-                    else
-                        this.ValueSetter(data, this.DefaultValue);
+                        this.ValueSetter(rec.Data, d != 0);
+                    else if (string.IsNullOrEmpty(str))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else {
+                        var val = this.Parser(str);
+                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a Boolean value.");
+                    }
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    this.ValueSetter(data, this.Parser(reader.GetStringCellValue(cell)) ?? this.DefaultValue);
+                    var str = reader.GetStringCellValue(cell);
+                    if (string.IsNullOrWhiteSpace(str))
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    else {
+                        var val = this.Parser(str);
+                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a Boolean value.");
+                    }
                 }
             }
         }
@@ -562,14 +612,47 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public V? DefaultValue { get; private set; }
             public Func<string?, V?>? Parser { get; private set; }
 
-            public override void DeserializeTo(T data, Cell cell, ExcelDataReader<T> reader) {
+            public override void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader) {
 
-                if (cell.DataType?.Value == CellValues.Number) {
-                    this.ValueSetter(data, defaultParser(cell.CellValue?.InnerText) ?? this.DefaultValue);
+                if (rec.Data == null) {
+                    rec.Error = "Data is not initialized.";
+                    return;
+                }
+
+                if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
+
+                    var str = reader.GetStringCellValue(cell);
+                    var val = defaultParser(cell.CellValue?.InnerText);
+
+                    if (val != null) {
+                        this.ValueSetter(rec.Data, val);
+                    }
+                    else if (string.IsNullOrEmpty(str)) {
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    }
+                    else if (this.Parser != null) {
+
+                        val = this.Parser(str);
+                        if (val != null) this.ValueSetter(rec.Data, val);
+                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.");
+                    }
+                    else {
+                        rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.");
+                    }
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
-                    || cell.DataType?.Value == CellValues.SharedString || cell.DataType == null) {
-                    this.ValueSetter(data, (this.Parser ?? defaultParser)(reader.GetStringCellValue(cell)) ?? this.DefaultValue);
+                    || cell.DataType?.Value == CellValues.SharedString) {
+
+                    var str = reader.GetStringCellValue(cell);
+                    if (string.IsNullOrWhiteSpace(str)) {
+                        this.ValueSetter(rec.Data, this.DefaultValue);
+                    }
+                    else {
+
+                        var val = (this.Parser ?? defaultParser)(str);
+                        if (val != null) this.ValueSetter(rec.Data, val);
+                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.");
+                    }
                 }
             }
         }
@@ -608,6 +691,46 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             public int CalcLength(uint endCol) {
                 return (int)(this.IndexOfColumnEnd ?? endCol - this.IndexOfColumnBegin + 1);
+            }
+        }
+
+        public class Record {
+
+            public Record() { }
+
+            public uint RowId { get; private set; }
+
+            public T? Data { get; private set; }
+
+            public Dictionary<string, string>? CellErrors { get; private set; }
+            public string? Error { get; set; }
+
+            public bool HasErrors {
+                get {
+                    return (this.CellErrors != null && this.CellErrors.Count > 0) || this.Error != null;
+                }
+            }
+
+            public void AddCellError(string? colName, string error) {
+
+                if (colName == null) return;
+                if (this.CellErrors == null) this.CellErrors = [];
+                if (!this.CellErrors.TryAdd(colName, error)) this.CellErrors[colName] = error;
+            }
+
+            public Record GetReusedOrCreateNew(uint rowId, T? data, Func<T?> builder) {
+
+                var rec = this;
+                if (data == null) {
+                    data = builder();
+                    rec = new Record();
+                }
+                rec.RowId = rowId;
+                rec.Data = data;
+                rec.Error = null;
+                rec.CellErrors?.Clear();
+
+                return rec;
             }
         }
     }

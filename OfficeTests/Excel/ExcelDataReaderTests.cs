@@ -24,7 +24,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                             colIdx: 3)
                     });
 
-                var data = reader.Read(cfg).ToList();
+                var data = reader.Read(cfg).Select(i => i.Data).ToList();
                 Assert.AreEqual(6, data.Count);
                 foreach (var item in data) {
                     Assert.AreEqual(item.ExpectedValue, item.ValueToCheck);
@@ -53,7 +53,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                             colIdx: 3)
                     });
 
-                var data = reader.Read(cfg).ToList();
+                var data = reader.Read(cfg).Select(i => i.Data).ToList();
                 Assert.AreEqual(7, data.Count);
                 foreach (var item in data) {
                     Assert.AreEqual(item.ExpectedValue, item.ValueToCheck);
@@ -73,8 +73,8 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                     null,
                     (rec, c, v) => { rec.Add(v); });
 
-                var data = reader.Read(cfg).ToList();
-                Assert.AreEqual(10, data.Count);
+                var data = reader.Read(cfg).Select(i => i.Data).ToList();
+                Assert.AreEqual(8, data.Count);
             }
         }
 

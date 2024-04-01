@@ -26,7 +26,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         /// <param name="indexOfColumnEnd">read till to the column. it's optional.</param>
         /// <param name="reused">the object for reuse.</param>
         /// <returns>the length of the list in each row is variable, depends on the last cell which has value in the row.</returns>
-        public static IEnumerable<List<string?>> Read(
+        public static IEnumerable<ExcelDataReader<List<string?>>.Record> Read(
             string filePath,
             uint sheetNo,
             uint indexOfRowBegin,
@@ -47,7 +47,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         /// <param name="range">the area to read</param>
         /// <param name="reused">the object for reuse.</param>
         /// <returns>the length of the list in each row is variable, depends on the last cell which has value in the row.</returns>
-        public static IEnumerable<List<string?>> Read(
+        public static IEnumerable<ExcelDataReader<List<string?>>.Record> Read(
             string filePath,
             uint sheetNo,
             ExcelDataReader<List<string?>>.DataArea range,
