@@ -9,7 +9,6 @@ using me.fengyj.CommonLib.Utils;
 namespace me.fengyj.CommonLib.Office.Excel {
     public class ExcelBuilder {
 
-        public const int MAX_ROW_COUNT = 1_048_576;
         public List<SheetBuilder> SheetBuilders { get; private set; } = [];
         internal List<string> SheetNames { get; private set; } = [];
         internal List<string> TableNames { get; private set; } = [];
@@ -42,12 +41,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
             }
         }
 
-        public static void BuildTo(string filePath, DataSet dataset) {
+        public static void BuildTo(string filePath, DataSet dataSet) {
 
             var builder = new ExcelBuilder();
 
             var sheetIdx = 1;
-            foreach (DataTable tbl in dataset.Tables) {
+            foreach (DataTable tbl in dataSet.Tables) {
                 var sheetName = string.IsNullOrWhiteSpace(tbl.TableName) || tbl.TableName.Equals("Table", StringComparison.OrdinalIgnoreCase)
                     ? $"Sheet{sheetIdx++}"
                     : tbl.TableName;
@@ -78,17 +77,6 @@ namespace me.fengyj.CommonLib.Office.Excel {
         internal string GetNewRelationId() {
             return $"rId{++this.RelationId}";
         }
-
-        public static string GetExcelColumnName(string prefix, uint column) {
-            return column < 26
-                ? $"{prefix}{(char)('A' + column - 1)}"
-                : GetExcelColumnName(GetExcelColumnName(prefix, (column - column % 26) / 26 - 1), column % 26);
-        }
-
-        public static string GetExcelCellReference(uint row, uint column) => $"{GetExcelColumnName(string.Empty, column)}{row}";
-
-        public static string GetExcelTableReference(uint rowStart, uint rowEnd, uint columnStart, uint columnEnd)
-            => $"{GetExcelCellReference(rowStart, columnStart)}:{GetExcelCellReference(rowEnd, columnEnd)}";
     }
 
     public class SheetBuilder {
@@ -148,7 +136,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             return this.AddRows(() => values.Select((r, idx) => {
                 var rb = this.CreateRowBuilder(rowOffset: idx == 0 ? rowOffset : 1);
-                if (r is IEnumerable<object> cs) return rb.AddCell(cs, colOffset: colOffset);
+                if (r is IEnumerable<object> cs) return rb.AddCells(cs, colOffset: colOffset);
                 else return rb.AddCell(r, colOffset: colOffset);
             }));
         }
@@ -225,7 +213,6 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             var sheetData = new SheetData();
 
-            this.AddRow(string.Empty); // add a empty cell to the end to avoid the error caused by the empty sheet.
             if (this.RowBuilderSuppliers != null) {
 
                 var builders = this.RowBuilderSuppliers();
@@ -234,19 +221,21 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     RowBuilder? lastBuilder = null;
                     foreach (var b in builders) {
                         lastBuilder = b;
-                        if (this.CurrentRowPosition >= ExcelBuilder.MAX_ROW_COUNT) missedRows++;
+                        if (this.CurrentRowPosition >= ExcelUtil.Max_Row_Count) missedRows++;
                         else b.BuildTo(sheetData);
                     }
                     if (missedRows > 1)
                         new RowBuilder(this).AddCell($"(There are {missedRows} more rows cannot be displayed during to the limitaion of Excel.)").BuildTo(sheetData);
-                    else
+                    else if (missedRows == 1)
                         lastBuilder?.BuildTo(sheetData);
                 }
-
-                this.SetColumnWidths(sheetPart, sheetData);
             }
+            if (!sheetData.HasChildren)
+                this.CreateRowBuilder().AddCell(string.Empty).BuildTo(sheetData); // add a empty cell to the end to avoid the error caused by the empty sheet.
 
-            // todo: DO NOT change the order of code below.
+            this.SetColumnWidths(sheetPart, sheetData);
+
+            // DO NOT change the order of code below.
 
             sheetPart.Worksheet.Append(sheetData);
 
@@ -499,7 +488,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                 if (!string.IsNullOrWhiteSpace(linkValue.Link)) {
 
-                    linkValue.CellReferenceId = ExcelBuilder.GetExcelCellReference(
+                    linkValue.CellReferenceId = ExcelUtil.GetCellReference(
                         this.RowBuilder.SheetBuilder.CurrentRowPosition,
                         this.RowBuilder.CurrentColumnPosition);
 
@@ -585,7 +574,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             var tblRefId = this.SheetBuilder.ExcelBuilder.GetNewRelationId();
             var tblDefPart = worksheetPart.AddNewPart<TableDefinitionPart>(tblRefId);
-            var tblRef = ExcelBuilder.GetExcelTableReference(this.RowStart, this.RowEnd, this.ColumnStart, this.ColumnEnd);
+            var tblRef = ExcelUtil.GetTableReference(this.RowStart, this.RowEnd, this.ColumnStart, this.ColumnEnd);
             var tbl = new Table { Id = this.Id, Name = this.TableName, DisplayName = this.TableName, Reference = tblRef, TotalsRowShown = this.HasTotalRow };
 
             var cols = new TableColumns { Count = UInt32Value.FromUInt32((uint)this.Headers.Length) };
