@@ -22,13 +22,26 @@
 
         private void Parse(string[] inputs) {
 
-            if (inputs == null || inputs.Length == 0) return;
+            var dict = new Dictionary<string, string?>();
 
-            foreach (var item in inputs) {
+            if (inputs != null) {
+                foreach (var item in inputs) {
 
-                var keyValue = item.Split('=');
-                var key = keyValue[0].Trim().TrimStart('-');
-                var val = keyValue.Length == 2 ? keyValue[1].Trim() : null;
+                    var keyValue = item.Split('=');
+                    var key = keyValue[0].Trim().TrimStart('-');
+                    var val = keyValue.Length == 2 ? keyValue[1].Trim() : null;
+                    dict.Add(key, val);
+                }
+            }
+            foreach (var a in this.Args) {
+                if (a.Value.DefaultValue != null && !dict.ContainsKey(a.Key))
+                    dict.Add(a.Key, a.Value.DefaultValue);
+            }
+
+            foreach (var item in dict) {
+
+                var key = item.Key;
+                var val = item.Value;
 
                 if (key == Arg_Help_Name) {
 
