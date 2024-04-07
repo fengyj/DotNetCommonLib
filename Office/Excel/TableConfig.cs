@@ -10,21 +10,6 @@
         public string? TableName { get; private set; }
         public List<ITableColumnConfig<T>> Columns { get; private set; }
         public TableStyle TableStyle { get; private set; }
-
-        public void Verify() {
-
-            if (this.Columns == null || this.Columns.Count == 0)
-                throw new InvalidDataException($"The {nameof(this.Columns)} cannot be null nor empty.");
-
-            foreach (var i in this.Columns)
-                if (string.IsNullOrWhiteSpace(i.ColumnName))
-                    throw new InvalidDataException($"The {nameof(i.ColumnName)} of {nameof(this.Columns)} cannot be null nor empty.");
-
-            var groupByName = this.Columns.GroupBy(i => i.ColumnName);
-            foreach (var g in groupByName)
-                if (g.Count() > 1)
-                    throw new InvalidDataException($"The name {g.Key} is duplicated.");
-        }
     }
 
     public interface ITableColumnConfig<T> {

@@ -31,7 +31,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
 
                 builder.BuildTo(tmpFile.FullName);
 
-                var data = ExcelUtil.Read(tmpFile.FullName, 1, 1, 1, 10, 4); // sheet1
+                var data = ExcelUtil.Read(tmpFile.FullName, 1, 1, 1, 10, 4).Select(i => i.Data); // sheet1
                 var count = 0;
                 foreach (var row in data) {
                     count++;
@@ -42,11 +42,11 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                 }
                 Assert.AreEqual(10, count);
 
-                data = ExcelUtil.Read(tmpFile.FullName, 2, 2, 3); // sheet2
+                data = ExcelUtil.Read(tmpFile.FullName, 2, 2, 3).Select(i => i.Data); // sheet2
                 Assert.AreEqual(1, data.Sum(i => i.Count));
 
                 var reused = new List<string?>();
-                data = ExcelUtil.Read(tmpFile.FullName, 3, 1, 1, reused: reused);
+                data = ExcelUtil.Read(tmpFile.FullName, 3, 1, 1, reused: reused).Select(i => i.Data);
                 count = 0;
                 foreach (var row in data) {
                     count++;

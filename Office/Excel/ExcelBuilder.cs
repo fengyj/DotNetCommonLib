@@ -255,11 +255,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
             if (hasHeader && config != null && config.Columns != null) { // check config and columns again to avoid the warning in below code
 
                 endCol = (uint)(startCol - 1 + config.Columns.Count);
+                var titles = config.Columns.Select((c, idx) => c.ColumnName ?? $"Column {idx + 1}").ToArray();
+                foreach (var g in titles.Select((t, i) => new { t, i }).GroupBy(i => i.t).Select(i => i.ToList()).ToList())
+                    foreach (var t in g.Select((t, i) => new { t.i, s = $"{t.t}{i}" }).Skip(1))
+                        titles[t.i] = t.s; // add seq no suffix to the duplicated column names 
 
-                yield return this.CreateRowBuilder(rowOffset: rowOffset).AddCells(
-                    config.Columns.Select((c, idx) => c.ColumnName ?? $"Column {idx + 1}"),
-                    cellStyle: CellStyle.TableHeader,
-                    colOffset: colOffset);
+                yield return this.CreateRowBuilder(rowOffset: rowOffset).AddCells(titles, cellStyle: CellStyle.TableHeader, colOffset: colOffset);
             }
 
             // 2. data
