@@ -441,27 +441,27 @@ namespace me.fengyj.CommonLib.Office.Excel {
         private static readonly Func<object, Cell> defaultCellGetter = obj => new Cell { InlineString = new() { Text = new Text(obj.ToString() ?? string.Empty) } };
         private static readonly Dictionary<Type, Tuple<CellStyle, Func<object, Cell>>> DefaultCellBuilders = new() {
 
-            { typeof(string), System.Tuple.Create(CellStyle.Cell, defaultCellGetter)},
+            { typeof(string), System.Tuple.Create(CellStyle.Normal, defaultCellGetter)},
 
-            { typeof(short), System.Tuple.Create(CellStyle.Cell_Integer_Default, (object obj) => new Cell{CellValue = new ((short)obj)}) },
-            { typeof(ushort), System.Tuple.Create(CellStyle.Cell_Integer_Default, (object obj) => new Cell{CellValue = new ((ushort)obj)}) },
-            { typeof(int), System.Tuple.Create(CellStyle.Cell_Integer_Default, (object obj) => new Cell{CellValue = new ((int)obj)}) },
-            { typeof(uint), System.Tuple.Create(CellStyle.Cell_Integer_Default, (object obj) => new Cell{CellValue = new ((int)(uint)obj)}) },
-            { typeof(byte), System.Tuple.Create(CellStyle.Cell_Integer_Default, (object obj) => new Cell{CellValue = new ((byte)obj)}) },
-            { typeof(sbyte), System.Tuple.Create(CellStyle.Cell_Integer_Default, (object obj) => new Cell{CellValue = new ((sbyte)obj)}) },
+            { typeof(short), System.Tuple.Create(CellStyle.Integer_Default, (object obj) => new Cell{CellValue = new ((short)obj)}) },
+            { typeof(ushort), System.Tuple.Create(CellStyle.Integer_Default, (object obj) => new Cell{CellValue = new ((ushort)obj)}) },
+            { typeof(int), System.Tuple.Create(CellStyle.Integer_Default, (object obj) => new Cell{CellValue = new ((int)obj)}) },
+            { typeof(uint), System.Tuple.Create(CellStyle.Integer_Default, (object obj) => new Cell{CellValue = new ((int)(uint)obj)}) },
+            { typeof(byte), System.Tuple.Create(CellStyle.Integer_Default, (object obj) => new Cell{CellValue = new ((byte)obj)}) },
+            { typeof(sbyte), System.Tuple.Create(CellStyle.Integer_Default, (object obj) => new Cell{CellValue = new ((sbyte)obj)}) },
 
-            { typeof(long), System.Tuple.Create(CellStyle.Cell_Integer_Default, (object obj) => new Cell{CellValue = new ((double)(long)obj)}) },
-            { typeof(ulong), System.Tuple.Create(CellStyle.Cell_Integer_Default, (object obj) => new Cell{CellValue = new ((double)(ulong)obj)}) },
+            { typeof(long), System.Tuple.Create(CellStyle.Integer_Default, (object obj) => new Cell{CellValue = new ((double)(long)obj)}) },
+            { typeof(ulong), System.Tuple.Create(CellStyle.Integer_Default, (object obj) => new Cell{CellValue = new ((double)(ulong)obj)}) },
 
-            { typeof(float), System.Tuple.Create(CellStyle.Cell_Decimal_Default, (object obj) => new Cell{CellValue = new ((double)(float)obj)}) },
-            { typeof(double), System.Tuple.Create(CellStyle.Cell_Decimal_Default, (object obj) => new Cell{CellValue = new ((double)obj)}) },
-            { typeof(decimal), System.Tuple.Create(CellStyle.Cell_Decimal_Default, (object obj) => new Cell{CellValue = new ((decimal)obj)}) },
+            { typeof(float), System.Tuple.Create(CellStyle.Decimal_Default, (object obj) => new Cell{CellValue = new ((double)(float)obj)}) },
+            { typeof(double), System.Tuple.Create(CellStyle.Decimal_Default, (object obj) => new Cell{CellValue = new ((double)obj)}) },
+            { typeof(decimal), System.Tuple.Create(CellStyle.Decimal_Default, (object obj) => new Cell{CellValue = new ((decimal)obj)}) },
 
-            { typeof(bool), System.Tuple.Create(CellStyle.Cell_Bool_Default, (object obj) => new Cell{CellValue = new ((bool)obj)}) },
+            { typeof(bool), System.Tuple.Create(CellStyle.Bool_Default, (object obj) => new Cell{CellValue = new ((bool)obj)}) },
 
-            { typeof(DateTime), System.Tuple.Create(CellStyle.Cell_DateTime_Default, (object obj) => new Cell{CellValue = new ((DateTime)obj)}) },
+            { typeof(DateTime), System.Tuple.Create(CellStyle.DateTime_Default, (object obj) => new Cell{CellValue = new ((DateTime)obj)}) },
 
-            { typeof(TimeSpan), System.Tuple.Create(CellStyle.Cell_Timespan_Default, (object obj) => new Cell{InlineString = new() { Text = new Text(((TimeSpan)obj).ToString() ?? string.Empty) }}) },
+            { typeof(TimeSpan), System.Tuple.Create(CellStyle.Timespan_Default, (object obj) => new Cell{InlineString = new() { Text = new Text(((TimeSpan)obj).ToString() ?? string.Empty) }}) },
 
             { typeof(HyperLinkValue), System.Tuple.Create(CellStyle.Hyperlink, (object obj) => new Cell{InlineString = new() { Text = new Text(((HyperLinkValue)obj)?.DisplayName ?? string.Empty) }  }) },
         };
@@ -502,7 +502,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         private Cell BuildCell(object? obj, CellStyle? style) {
 
-            var cellStyle = style ?? CellStyle.Cell;
+            var cellStyle = style ?? CellStyle.Normal;
 
             if (obj == null) return new Cell() { StyleIndex = cellStyle.StyleId, DataType = cellStyle.CellValueType };
 

@@ -111,19 +111,19 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
             sheetBuilder.AddTable(
                 [[DateTime.Now, DateTime.Today, DateTime.UtcNow]],
                 new TableConfig<DateTime[]>([
-                    new TableColumnConfig<DateTime[], DateTime>("Default", dataGetter: i => i[0], style: CellStyle.Cell_DateTime_Default),
-                    new TableColumnConfig<DateTime[], DateTime>("UK", dataGetter: i => i[1], style: CellStyle.Cell_Date_Default.With(numberingStyle: NumberingStyle.Date_UK)),
-                    new TableColumnConfig<DateTime[], DateTime>("US", dataGetter: i => i[2], style: CellStyle.Cell_Date_Default.With(numberingStyle: NumberingStyle.DateTime_US))]));
+                    new TableColumnConfig<DateTime[], DateTime>("Default", dataGetter: i => i[0], style: CellStyle.DateTime_Default),
+                    new TableColumnConfig<DateTime[], DateTime>("UK", dataGetter: i => i[1], style: CellStyle.Date_Default.With(numberingStyle: NumberingStyle.Date_UK)),
+                    new TableColumnConfig<DateTime[], DateTime>("US", dataGetter: i => i[2], style: CellStyle.Date_Default.With(numberingStyle: NumberingStyle.DateTime_US))]));
 
             sheetBuilder.AddRow("Different number format:", rowOffset: 2, style: CellStyle.Quote);
             sheetBuilder.AddTable(
                 [[123456789, 1024.4201, 1000000.123m, 0.123]],
                 new TableConfig<object[]>([
-                    new TableColumnConfig<object[], object>("Integer", dataGetter: i => i[0], style: CellStyle.Cell_Integer_Default),
-                    new TableColumnConfig<object[], object>("Integer 2", dataGetter: i => i[0], style: CellStyle.Cell_Integer_Default.With(numberingStyle: NumberingStyle.Integer_Thousands)),
-                    new TableColumnConfig<object[], object>("Decimal", dataGetter: i => i[1], style: CellStyle.Cell_Decimal_Default),
-                    new TableColumnConfig<object[], object>("Decimal with 2 digits", dataGetter: i => i[2], style: CellStyle.Cell_Decimal_Default.With(numberingStyle: NumberingStyle.Decimal_Thousands_2)),
-                    new TableColumnConfig<object[], object>("Percentage", dataGetter: i => i[3], style: CellStyle.Cell_Decimal_Default.With(numberingStyle: NumberingStyle.Percent_1))]));
+                    new TableColumnConfig<object[], object>("Integer", dataGetter: i => i[0], style: CellStyle.Integer_Default),
+                    new TableColumnConfig<object[], object>("Integer 2", dataGetter: i => i[0], style: CellStyle.Integer_Default.With(numberingStyle: NumberingStyle.Integer_Thousands)),
+                    new TableColumnConfig<object[], object>("Decimal", dataGetter: i => i[1], style: CellStyle.Decimal_Default),
+                    new TableColumnConfig<object[], object>("Decimal with 2 digits", dataGetter: i => i[2], style: CellStyle.Decimal_Default.With(numberingStyle: NumberingStyle.Decimal_Thousands_2)),
+                    new TableColumnConfig<object[], object>("Percentage", dataGetter: i => i[3], style: CellStyle.Decimal_Default.With(numberingStyle: NumberingStyle.Percent_1))]));
 
             sheetBuilder.AddRow(["Here is a hyperlink: ", new HyperLinkValue("http://google.com", "Google")], rowOffset: 2);
 

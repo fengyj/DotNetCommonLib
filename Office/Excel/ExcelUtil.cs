@@ -3,8 +3,8 @@
 namespace me.fengyj.CommonLib.Office.Excel {
     public static class ExcelUtil {
 
-        public const int Max_Row_Count = 1_048_576;
-        public const int Max_Column_Count = 16_384;
+        public const uint Max_Row_Count = 1_048_576;
+        public const uint Max_Column_Count = 16_384;
 
         /// <summary>
         /// Export the data of the tables in the dataset to spreadsheet. The sheet name is from the table's name.
@@ -67,17 +67,21 @@ namespace me.fengyj.CommonLib.Office.Excel {
             }
         }
 
-        private static string GetColumnName(string prefix, uint column) {
-            return column < 26
-                ? $"{prefix}{(char)('A' + column - 1)}"
-                : GetColumnName(GetColumnName(prefix, (column - column % 26) / 26 - 1), column % 26);
-        }
-
         public static string GetColumnName(uint column) {
-            return GetColumnName(string.Empty, column);
+
+            ArgumentOutOfRangeException.ThrowIfZero(column);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(column, Max_Column_Count);
+
+            var name = string.Empty;
+            while (column > 0) {
+                column--;
+                name = (char)('A' + column % 26) + name;
+                column /= 26;
+            }
+            return name;
         }
 
-        public static string GetCellReference(uint row, uint column) => $"{GetColumnName(string.Empty, column)}{row}";
+        public static string GetCellReference(uint row, uint column) => $"{GetColumnName(column)}{row}";
 
         public static string GetTableReference(uint rowStart, uint rowEnd, uint columnStart, uint columnEnd)
             => $"{GetCellReference(rowStart, columnStart)}:{GetCellReference(rowEnd, columnEnd)}";

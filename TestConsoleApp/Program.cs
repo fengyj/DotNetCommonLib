@@ -1,10 +1,31 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Configuration;
 using System.Text.RegularExpressions;
 
 using me.fengyj.CommonLib.Utils.App;
 
+using TestConsoleApp;
+
 internal class Program {
     static void Main(string[] args) {
+
+        var exeFileName = Path.GetFileNameWithoutExtension(System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name);
+
+        var cfgFileMap = new System.Configuration.ExeConfigurationFileMap();
+        var srcFile = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            AppEnvironment.Default.ConfigsFolder,
+            $"{exeFileName}.dev.config");
+        var tagFile = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            $"{exeFileName}.exe.config");
+
+        File.Copy(srcFile, tagFile, true);
+
+        var cfg = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+        foreach (ConfigurationSection s in cfg.Sections) {
+            ConfigurationManager.RefreshSection(s.SectionInformation.Name);
+        }
 
         args = ["-date=2024-01-01", "-h"];
         var appArgs = new AppArguments<Args>(

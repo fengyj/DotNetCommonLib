@@ -61,6 +61,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         private static volatile int Seq = -1;
         private static readonly ConcurrentBag<CellStyle> styles = [];
+        private static Dictionary<string, CellStyle>? namedStyles;
 
         #region default styles
 
@@ -80,40 +81,38 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public static readonly CellStyle Hyperlink = new(fontStyle: FontStyle.Hyperlink);
 
-        public static readonly CellStyle Cell = new(fontStyle: FontStyle.Normal);
-
-        public static readonly CellStyle Cell_Integer_Default = new(
+        public static readonly CellStyle Integer_Default = new(
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: NumberingStyle.Integer_Default,
             alignmentStyle: AlignmentStyle.Right,
             cellValueType: CellValues.Number);
-        public static readonly CellStyle Cell_Decimal_Default = new(
+        public static readonly CellStyle Decimal_Default = new(
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: NumberingStyle.Decimal_Default,
             alignmentStyle: AlignmentStyle.Right,
             cellValueType: CellValues.Number);
 
-        public static readonly CellStyle Cell_DateTime_Default = new(
+        public static readonly CellStyle DateTime_Default = new(
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: NumberingStyle.DateTime_Default,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
-        public static readonly CellStyle Cell_Date_Default = new(
+        public static readonly CellStyle Date_Default = new(
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: NumberingStyle.Date_Default,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
-        public static readonly CellStyle Cell_Time_Default = new(
+        public static readonly CellStyle Time_Default = new(
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: NumberingStyle.Time,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
 
-        public static readonly CellStyle Cell_Timespan_Default = new(
+        public static readonly CellStyle Timespan_Default = new(
             fontStyle: FontStyle.Mono_Normal,
             alignmentStyle: AlignmentStyle.Right); // the value should be converted to string with the format: "[-][d:]hh:mm:ss"
 
-        public static readonly CellStyle Cell_Bool_Default = new(
+        public static readonly CellStyle Bool_Default = new(
             fontStyle: FontStyle.Normal,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Boolean);
@@ -187,6 +186,27 @@ namespace me.fengyj.CommonLib.Office.Excel {
         }
 
         public static IEnumerable<CellStyle> GetStyles() => styles.OrderBy(s => s.StyleId);
+
+        public static CellStyle? GetNamedStyle(string name) {
+
+            if (namedStyles == null) {
+                lock (typeof(CellStyle)) {
+                    if (namedStyles == null) {
+
+                        var dict = new Dictionary<string, CellStyle>();
+                        var fieldds = typeof(CellStyle).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                            .Where(f => f.FieldType == typeof(CellStyle));
+                        foreach (var f in fieldds) {
+                            var o = f.GetValue(null);
+                            if (o is CellStyle cs) dict.Add(f.Name, cs);
+                        }
+                        namedStyles = dict;
+                    }
+                }
+            }
+            if (namedStyles.TryGetValue(name, out var s)) return s;
+            else return null;
+        }
     }
 
     public class FillStyle {

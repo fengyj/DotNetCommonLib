@@ -24,8 +24,8 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                     .AddTable(Enumerable.Repeat(new object[] { 123456m, true, DateTime.Today }, 2), new TableConfig<object[]>(new List<ITableColumnConfig<object[]>>() {
                         new TableColumnConfig<object[], object>("col1", dataGetter: i => i[0]),
                         new TableColumnConfig<object[], object>("col2", dataGetter: i => i[1]),
-                        new TableColumnConfig<object[], object>("col3", dataGetter: i => i[2], style: CellStyle.Cell_DateTime_Default.With(numberingStyle: NumberingStyle.DateTime_UK)),
-                        new TableColumnConfig<object[], object>("col4", dataGetter: i => i[2], style: CellStyle.Cell_DateTime_Default.With(numberingStyle: NumberingStyle.Date_US))
+                        new TableColumnConfig<object[], object>("col3", dataGetter: i => i[2], style: CellStyle.DateTime_Default.With(numberingStyle: NumberingStyle.DateTime_UK)),
+                        new TableColumnConfig<object[], object>("col4", dataGetter: i => i[2], style: CellStyle.DateTime_Default.With(numberingStyle: NumberingStyle.Date_US))
                     }));
 
 
