@@ -64,11 +64,11 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                     new TableColumnConfig<SampleData, float?>("Float Column", dataGetter: i => i.FloatValue),
                     new TableColumnConfig<SampleData, double?>("Double Column", dataGetter: i => i.DoubleValue),
                     new TableColumnConfig<SampleData, decimal?>("Decimal Column", dataGetter: i => i.DecimalValue),
-                    new TableColumnConfig<SampleData, DateTime?>("DateTime Column", dataGetter: i => i.DateTimeValue),
+                    new TableColumnConfig<SampleData, DateTime?>("DateTime Column", dataGetter: i => i.DateTimeValue, totalFunction: ColumnTotalFunction.Min),
                     new TableColumnConfig<SampleData, bool?>("Bool Column", dataGetter: i => i.BooleanValue),
                     new TableColumnConfig<SampleData, TimeSpan?>("TimeSpan Column", dataGetter: i => i.TimeSpanValue),
                     new TableColumnConfig<SampleData, long?>("Long Column", dataGetter: i => i.LongValue),
-                    new TableColumnConfig<SampleData, ulong?>("ULong Column", dataGetter: i => i.ULongValue)
+                    new TableColumnConfig<SampleData, ulong?>("ULong Column", dataGetter: i => i.ULongValue, style: CellStyle.Integer_Default.With(numberingStyle: NumberingStyle.Integer_Thousands), totalFunction: ColumnTotalFunction.Max)
                     ],
                 tableName: "Sample Data");
 
@@ -113,7 +113,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                 new TableConfig<DateTime[]>([
                     new TableColumnConfig<DateTime[], DateTime>("Default", dataGetter: i => i[0], style: CellStyle.DateTime_Default),
                     new TableColumnConfig<DateTime[], DateTime>("UK", dataGetter: i => i[1], style: CellStyle.Date_Default.With(numberingStyle: NumberingStyle.Date_UK)),
-                    new TableColumnConfig<DateTime[], DateTime>("US", dataGetter: i => i[2], style: CellStyle.Date_Default.With(numberingStyle: NumberingStyle.DateTime_US))]));
+                    new TableColumnConfig<DateTime[], DateTime>("US", dataGetter: i => i[2], style: CellStyle.Date_Default.With(numberingStyle: NumberingStyle.DateTime_US), totalFunction: ColumnTotalFunction.Max)]));
 
             sheetBuilder.AddRow("Different number format:", rowOffset: 2, style: CellStyle.Quote);
             sheetBuilder.AddTable(

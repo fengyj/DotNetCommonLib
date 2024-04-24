@@ -280,6 +280,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     endCol = Math.Max(endCol, lastRowBuilder.CurrentColumnPosition);
             }
 
+            // 3. in case there is row in the table
             if (hasHeader && lastRowBuilder == null) { // means no data, need to create an empty row to avoid the error to create the table
 
                 lastRowBuilder = this.CreateRowBuilder(rowOffset: 1);
@@ -288,7 +289,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
             }
 
             if (lastRowBuilder != null) { // if no data nor header, don't create the table.
-                this.TableBuilders.Add(new TableBuilder(
+
+                var tblBuilder = new TableBuilder(
                     this,
                     startRow,
                     this.CurrentRowPosition,
@@ -296,7 +298,26 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     endCol,
                     tableName: config?.TableName,
                     headers: hasHeader ? config?.Columns?.Select(i => i.ColumnName).ToArray() : null,
-                    style: config?.TableStyle));
+                    style: config?.TableStyle,
+                    colTotalFunctions: config?.Columns?.Select(i => {
+                        if (i == null || i.TotalFunction == null || i.TotalFunction == ColumnTotalFunction.None) return null;
+                        return (Func<string, string, string>)((string t, string c) => i.TotalFunction.GetFormula(t, c, i.CellStyle?.Format));
+                    }).ToArray());
+
+                if (tblBuilder.HasTotalRow && tblBuilder.ColumnTotalFunctions != null) {
+                    // add a row for the total row
+                    lastRowBuilder = this.CreateRowBuilder(rowOffset: 1);
+                    var values = new object[tblBuilder.Headers.Length];
+                    for (var i = 0; i < values.Length; i++) {
+                        var formula = tblBuilder.ColumnTotalFunctions[i];
+                        if (formula != null)
+                            values[i] = new CellFormulaValue(formula);
+                    }
+                    lastRowBuilder.AddCells(values, cellStyle: CellStyle.TableFooter, colOffset: colOffset);
+                    yield return lastRowBuilder;
+                }
+
+                this.TableBuilders.Add(tblBuilder);
             }
         }
 
@@ -464,6 +485,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             { typeof(TimeSpan), System.Tuple.Create(CellStyle.Timespan_Default, (object obj) => new Cell{InlineString = new() { Text = new Text(((TimeSpan)obj).ToString() ?? string.Empty) }}) },
 
             { typeof(HyperLinkValue), System.Tuple.Create(CellStyle.Hyperlink, (object obj) => new Cell{InlineString = new() { Text = new Text(((HyperLinkValue)obj)?.DisplayName ?? string.Empty) }  }) },
+            { typeof(CellFormulaValue), System.Tuple.Create(CellStyle.Normal, (object obj) => new Cell{CellFormula= new CellFormula(((CellFormulaValue)obj)?.Formula ?? string.Empty)}) },
         };
 
         public CellBuilder(RowBuilder rowBuilder, object? cellValue, CellStyle? style = null) {
@@ -517,7 +539,10 @@ namespace me.fengyj.CommonLib.Office.Excel {
             var cell = cellGetter(val);
 
             cell.StyleIndex = cellStyle.StyleId;
-            cell.DataType = cellStyle.CellValueType;
+            if (cell.CellFormula == null)
+                cell.DataType = cellStyle.CellValueType;
+            else
+                cell.DataType = CellValues.String;
 
             return cell;
         }
@@ -533,7 +558,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
             uint colEnd,
             string? tableName = null,
             string[]? headers = null,
-            TableStyle? style = null) {
+            TableStyle? style = null,
+            Func<string, string, string>?[]? colTotalFunctions = null) {
 
             this.SheetBuilder = sheetBuilder;
             this.RowStart = rowStart;
@@ -541,8 +567,6 @@ namespace me.fengyj.CommonLib.Office.Excel {
             this.ColumnStart = colStart;
             this.ColumnEnd = colEnd;
             this.Style = style ?? new TableStyle();
-
-            this.HasTotalRow = false; // not supported for now.
 
             if (headers != null && headers.Length != colEnd - colStart + 1)
                 throw new ArgumentException("The headers' length doesn't match the table's width.");
@@ -553,6 +577,20 @@ namespace me.fengyj.CommonLib.Office.Excel {
             this.HasHeader = style?.ShowHeader ?? headers != null;
             for (var i = 0; i < this.Headers.Length; i++)
                 if (string.IsNullOrWhiteSpace(this.Headers[i])) this.Headers[i] = $"Column {i + 1}";
+
+            if (colTotalFunctions != null) {
+                this.ColumnTotalFunctions = new string[colTotalFunctions.Length];
+                Array.Fill(this.ColumnTotalFunctions, null);
+                for (var i = 0; i < this.Headers.Length; i++) {
+                    if (colTotalFunctions.Length <= i) continue;
+                    if (colTotalFunctions[i] == null) continue;
+                    this.ColumnTotalFunctions[i] = colTotalFunctions[i]?.Invoke(this.TableName, this.Headers[i].Trim());
+                }
+            }
+
+            this.HasTotalRow = this.HasHeader && (this.ColumnTotalFunctions?.Any(f => f != null) ?? false);
+            if (this.HasTotalRow)
+                this.RowEnd += 1;
         }
 
         public uint Id { get; set; }
@@ -566,6 +604,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public bool HasTotalRow { get; private set; }
         public bool HasHeader { get; private set; }
         public TableStyle Style { get; private set; }
+        public string?[]? ColumnTotalFunctions { get; private set; }
 
         public void BuildTo(WorksheetPart worksheetPart) {
 
@@ -576,18 +615,32 @@ namespace me.fengyj.CommonLib.Office.Excel {
             var tblRefId = this.SheetBuilder.ExcelBuilder.GetNewRelationId();
             var tblDefPart = worksheetPart.AddNewPart<TableDefinitionPart>(tblRefId);
             var tblRef = ExcelUtil.GetTableReference(this.RowStart, this.RowEnd, this.ColumnStart, this.ColumnEnd);
+            var tblDataRef = ExcelUtil.GetTableReference(this.RowStart, this.HasTotalRow ? this.RowEnd - 1 : this.RowEnd, this.ColumnStart, this.ColumnEnd);
             var tbl = new Table { Id = this.Id, Name = this.TableName, DisplayName = this.TableName, Reference = tblRef, TotalsRowShown = this.HasTotalRow };
 
             var cols = new TableColumns { Count = UInt32Value.FromUInt32((uint)this.Headers.Length) };
-            for (var i = 0; i < this.Headers.Length; i++) cols.Append(new TableColumn { Id = (uint)i + this.ColumnStart, Name = this.Headers[i].Trim() });
+            for (var i = 0; i < this.Headers.Length; i++) {
+                var col = new TableColumn { Id = (uint)i + this.ColumnStart, Name = this.Headers[i].Trim() };
+                if (this.ColumnTotalFunctions != null) {
+                    var formula = this.ColumnTotalFunctions[i];
+                    if (formula != null) {
+                        col.TotalsRowFunction = new EnumValue<TotalsRowFunctionValues>(TotalsRowFunctionValues.Custom);
+                        col.TotalsRowFormula = new TotalsRowFormula(formula);
+                    }
+                }
+                cols.Append(col);
+            }
 
             if (this.HasHeader)
-                tbl.Append(new AutoFilter { Reference = tblRef });
+                tbl.Append(new AutoFilter { Reference = tblDataRef });
 
             tbl.Append(cols);
 
             if (!this.HasHeader)
                 tbl.HeaderRowCount = UInt32Value.FromUInt32(0);
+
+            if (this.HasTotalRow)
+                tbl.TotalsRowCount = UInt32Value.FromUInt32(1);
 
             tbl.Append(this.Style.TableStyleInfo);
 

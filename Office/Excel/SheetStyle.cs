@@ -78,6 +78,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public static readonly CellStyle Quote = new(fontStyle: FontStyle.Quote);
 
         public static readonly CellStyle TableHeader = new(fontStyle: FontStyle.TableHeader);
+        public static readonly CellStyle TableFooter = new(fontStyle: FontStyle.Mono_Normal, alignmentStyle: AlignmentStyle.Right);
 
         public static readonly CellStyle Hyperlink = new(fontStyle: FontStyle.Hyperlink);
 
@@ -136,6 +137,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 Alignment = alignmentStyle?.GetAlignment()
             };
             this.CellValueType = cellValueType ?? CellValues.InlineString;
+            this.Format = numberingStyle?.Format?.FormatCode?.Value;
             styles.Add(this);
             TooManyStylesException.Check(styles);
         }
@@ -148,6 +150,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public uint StyleId { get; private set; } = (uint)Interlocked.Increment(ref Seq);
         public CellFormat CellFormat { get; private set; }
         public CellValues CellValueType { get; private set; }
+        public string? Format { get; private set; }
 
         public CellStyle With(
             NumberingStyle? numberingStyle = null,
@@ -158,6 +161,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             CellValues? cellValueType = null) {
 
             var nfId = numberingStyle?.Format.NumberFormatId?.Value ?? this.CellFormat.NumberFormatId?.Value;
+            var fmt = numberingStyle?.Format.FormatCode?.Value ?? this.Format;
             var ftId = fontStyle?.StyleId ?? this.CellFormat.FontId?.Value;
             var flId = fillStyle?.StyleId ?? this.CellFormat.FillId?.Value;
             var bdId = borderStyle?.StyleId ?? this.CellFormat.BorderId?.Value;
@@ -182,6 +186,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             if (bdId != null) style.CellFormat.BorderId = UInt32Value.FromUInt32(bdId.Value);
             if (align != null) style.CellFormat.Alignment = new Alignment { Horizontal = align.Horizontal, Vertical = align.Vertical };
             if (this.CellFormat.ApplyAlignment != null) style.CellFormat.ApplyAlignment = new BooleanValue(this.CellFormat.ApplyAlignment.Value);
+            if (fmt != null) style.Format = fmt;
             return style;
         }
 
