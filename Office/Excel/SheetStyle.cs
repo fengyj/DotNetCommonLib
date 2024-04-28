@@ -84,28 +84,28 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public static readonly CellStyle Integer_Default = new(
             fontStyle: FontStyle.Mono_Normal,
-            numberingStyle: NumberingStyle.Integer_Default,
+            numberingStyle: DefaultStyleConfig.Numbering.DefaultInteger,
             alignmentStyle: AlignmentStyle.Right,
             cellValueType: CellValues.Number);
         public static readonly CellStyle Decimal_Default = new(
             fontStyle: FontStyle.Mono_Normal,
-            numberingStyle: NumberingStyle.Decimal_Default,
+            numberingStyle: DefaultStyleConfig.Numbering.DefaultDecimal,
             alignmentStyle: AlignmentStyle.Right,
             cellValueType: CellValues.Number);
 
         public static readonly CellStyle DateTime_Default = new(
             fontStyle: FontStyle.Mono_Normal,
-            numberingStyle: NumberingStyle.DateTime_Default,
+            numberingStyle: DefaultStyleConfig.Numbering.DefaultDateTime,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
         public static readonly CellStyle Date_Default = new(
             fontStyle: FontStyle.Mono_Normal,
-            numberingStyle: NumberingStyle.Date_Default,
+            numberingStyle: DefaultStyleConfig.Numbering.DefaultDate,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
         public static readonly CellStyle Time_Default = new(
             fontStyle: FontStyle.Mono_Normal,
-            numberingStyle: NumberingStyle.Time,
+            numberingStyle: DefaultStyleConfig.Numbering.DefaultTime,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
 

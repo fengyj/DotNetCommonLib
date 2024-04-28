@@ -6,6 +6,8 @@
 
         public static TableConfig Table = new();
 
+        public static NumberingConfig Numbering = new();
+
         public class FontConfig {
 
             public static readonly FontConfig Default = new();
@@ -35,6 +37,15 @@
 
             public string TableStyle_Default = "TableStyleMedium1";
             public string PivotTableStyle_Default = "PivotStyleMedium1";
+        }
+
+        public class NumberingConfig {
+
+            public NumberingStyle DefaultDate = NumberingStyle.Date_Default;
+            public NumberingStyle DefaultDateTime = NumberingStyle.DateTime_Default;
+            public NumberingStyle DefaultTime = NumberingStyle.Time;
+            public NumberingStyle DefaultInteger = NumberingStyle.Integer_Thousands;
+            public NumberingStyle DefaultDecimal = NumberingStyle.Decimal_Thousands;
         }
     }
 

@@ -11,8 +11,22 @@ namespace me.fengyj.CommonLib.Office.Excel {
         /// </summary>
         /// <param name="dataSet"></param>
         /// <param name="filePath"></param>
-        public static void Export(DataSet dataSet, string filePath) {
-            ExcelBuilder.BuildTo(filePath, dataSet);
+        /// <param name="tableStyle"></param>
+        /// <param name="cellStyles"></param>
+        /// <param name="colsInclude"></param>
+        /// <param name="colsExclude"></param>
+        /// <param name="rowOffset"></param>
+        /// <param name="colOffset"></param>
+        public static void Export(
+            DataSet dataSet,
+            string filePath,
+            TableStyle? tableStyle = null,
+            Dictionary<string, CellStyle>? cellStyles = null,
+            HashSet<string>? colsInclude = null,
+            HashSet<string>? colsExclude = null,
+            uint rowOffset = 1,
+            uint colOffset = 1) {
+            ExcelBuilder.BuildTo(filePath, dataSet, tableStyle, cellStyles, colsInclude, colsExclude, rowOffset, colOffset);
         }
 
         /// <summary>

@@ -41,7 +41,15 @@ namespace me.fengyj.CommonLib.Office.Excel {
             }
         }
 
-        public static void BuildTo(string filePath, DataSet dataSet) {
+        public static void BuildTo(
+            string filePath,
+            DataSet dataSet,
+            TableStyle? tableStyle = null,
+            Dictionary<string, CellStyle>? cellStyles = null,
+            HashSet<string>? colsInclude = null,
+            HashSet<string>? colsExclude = null,
+            uint rowOffset = 1,
+            uint colOffset = 1) {
 
             var builder = new ExcelBuilder();
 
@@ -50,7 +58,14 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 var sheetName = string.IsNullOrWhiteSpace(tbl.TableName) || tbl.TableName.Equals("Table", StringComparison.OrdinalIgnoreCase)
                     ? $"Sheet{sheetIdx++}"
                     : tbl.TableName;
-                builder.AppendSheet(sheetName).AddTable(tbl);
+                builder.AppendSheet(sheetName).AddTable(
+                    tbl,
+                    tableStyle: tableStyle,
+                    cellStyles: cellStyles,
+                    colsInclude: colsInclude,
+                    colsExclude: colsExclude,
+                    rowOffset: rowOffset,
+                    colOffset: colOffset);
             }
 
             builder.BuildTo(filePath);
@@ -180,9 +195,15 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 if ((colsInclude?.Contains(c.ColumnName) ?? true) && !(colsExclude?.Contains(c.ColumnName) ?? false)) {
 
                     var idx = colIdx;
+                    var cellStyle = (cellStyles?.ContainsKey(c.ColumnName) ?? false) ? cellStyles[c.ColumnName] : null;
+                    if (cellStyles == null && cellStyle == null && c.DataType == typeof(DateTime)) {
+                        if (IsAllDateWithoutTime(dataTable, idx))
+                            cellStyle = CellStyle.Date_Default;
+                    }
+
                     columns.Add(new TableColumnConfig<DataRow, object>(
                         c.ColumnName,
-                        style: (cellStyles?.ContainsKey(c.ColumnName) ?? false) ? cellStyles[c.ColumnName] : null,
+                        style: cellStyle,
                         dataType: c.DataType,
                         dataGetter: i => i[idx] == DBNull.Value ? null : i[idx]));
                 }
@@ -390,6 +411,20 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 })
                 .Select(i => (uint)(Math.Ceiling(i)))
                 .ToList();
+        }
+
+        private static bool IsAllDateWithoutTime(DataTable tbl, int colIdx) {
+
+            var rowIdx = 0;
+            foreach (DataRow row in tbl.Rows) {
+                rowIdx++;
+                if (rowIdx > 1000) break; // avoiding check too many.
+                if (rowIdx > 100 && rowIdx % 10 != 0) continue; // avoiding check too many.
+                var val = row[colIdx];
+                if (val is DateTime d && d.TimeOfDay != TimeSpan.Zero)
+                    return false;
+            }
+            return true;
         }
     }
 
