@@ -205,7 +205,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                         c.ColumnName,
                         style: cellStyle,
                         dataType: c.DataType,
-                        dataGetter: i => i[idx] == DBNull.Value ? null : i[idx]));
+                        dataGetter: i => Convert.IsDBNull(i[idx]) ? null : i[idx]));
                 }
             }
 

@@ -87,7 +87,7 @@ namespace me.fengyj.CommonLib.Data {
                 this.Command.Parameters[item.Key].Value = val ?? DBNull.Value;
             }
             var result = this.Command.ExecuteScalar();
-            if (result == DBNull.Value) return null;
+            if (Convert.IsDBNull(result)) return null;
             else return result;
         }
 
@@ -116,7 +116,7 @@ namespace me.fengyj.CommonLib.Data {
                 this.Command.Parameters[item.Key].Value = val ?? DBNull.Value;
             }
             var result = await this.Command.ExecuteScalarAsync();
-            if (result == DBNull.Value) return null;
+            if (Convert.IsDBNull(result)) return null;
             else return result;
         }
 

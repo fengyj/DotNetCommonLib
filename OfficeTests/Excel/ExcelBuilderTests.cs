@@ -1,5 +1,8 @@
-﻿using me.fengyj.CommonLib.Office.Excel;
+﻿using System.Data;
+
+using me.fengyj.CommonLib.Office.Excel;
 using me.fengyj.CommonLib.Utils;
+using me.fengyj.CommonLib.Utils.Data;
 
 namespace me.fengyj.CommonLib.OfficeTests.Excel {
 
@@ -143,6 +146,25 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
             finally {
                 IOUtil.DeleteFile(tmpFile);
             }
+        }
+
+        [TestMethod]
+        public void BuildLargeSheet() {
+
+            Console.WriteLine(DateTime.Now);
+            var dataSet = new DataSet();
+            dataSet.Tables.Add(DataTableUtil.CreateTable(Enumerable.Range(1, (int)ExcelUtil.Max_Row_Count)
+                .Select(i => new object[] { i, i + 1, i + 2 }).ToArray(), new string[] { "ID1", "ID2", "ID3" }));
+
+            var tmpFile = IOUtil.GetTempFile(fileExt: ".xlsx");
+            Console.WriteLine(DateTime.Now);
+            try {
+                ExcelBuilder.BuildTo(tmpFile.FullName, dataSet);
+            }
+            finally {
+                IOUtil.DeleteFile(tmpFile);
+            }
+            Console.WriteLine(DateTime.Now);
         }
 
         public class SampleData {
