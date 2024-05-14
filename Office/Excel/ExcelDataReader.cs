@@ -394,15 +394,15 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
                     var str = reader.GetStringCellValue(cell);
-                    if (double.TryParse(cell.CellValue?.InnerText, out var d) && (d < 2958466.0 && d > -657435.0)) // this is the valid range of OADate
+                    var val = this.Parser(str);
+                    if (val.HasValue)
+                        this.ValueSetter(rec.Data, val.Value);
+                    else if (double.TryParse(cell.CellValue?.InnerText, out var d) && (d < 2958466.0 && d > -657435.0)) // this is the valid range of OADate
                         this.ValueSetter(rec.Data, DateTime.FromOADate(d));
                     else if (string.IsNullOrEmpty(str))
                         this.ValueSetter(rec.Data, this.DefaultValue);
-                    else {
-                        var val = this.Parser(str);
-                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
-                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a DateTime value.");
-                    }
+                    else
+                        rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a DateTime value.");
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
