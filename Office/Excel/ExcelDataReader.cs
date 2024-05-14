@@ -394,7 +394,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
                     var str = reader.GetStringCellValue(cell);
-                    if (double.TryParse(cell.CellValue?.InnerText, out var d))
+                    if (double.TryParse(cell.CellValue?.InnerText, out var d) && (d < 2958466.0 && d > -657435.0)) // this is the valid range of OADate
                         this.ValueSetter(rec.Data, DateTime.FromOADate(d));
                     else if (string.IsNullOrEmpty(str))
                         this.ValueSetter(rec.Data, this.DefaultValue);
