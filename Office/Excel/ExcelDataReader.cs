@@ -38,6 +38,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             using var reader = OpenXmlReader.Create(sheetPart);
             var currentRowIdx = 0u;
             var currentColIdx = 0u;
+            var allCellsInRowEmpty = true;
 
             while (reader.Read()) {
 
@@ -45,6 +46,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     if (reader.IsStartElement) {
 
+                        allCellsInRowEmpty = true;
                         var rowId = GetRowId(reader);
                         if (rowId != null)
                             for (var i = currentRowIdx + 1; i < rowId; i++)
@@ -59,7 +61,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                         // check if needs to skip the header row
                         var rowCanReturn = isReadViaTableColumns ? (currentRowIdx > config.Area.IndexOfRowBegin) : (currentRowIdx >= config.Area.IndexOfRowBegin);
                         if (rowCanReturn && currentColIdx >= config.Area.IndexOfColumnBegin)
-                            if (rec != null)
+                            if (rec != null && (!config.SkipEmptyRows || !allCellsInRowEmpty))
                                 yield return rec;
 
                         if (config.Area.IndexOfRowEnd.HasValue && currentRowIdx >= config.Area.IndexOfRowEnd.Value) break;
@@ -114,6 +116,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     else if (config.DefaultSetter != null && rec.Data != null) {
                         config.DefaultSetter(rec.Data, currentColIdx, this.GetStringCellValue(cell));
                     }
+
+                    if (!string.IsNullOrWhiteSpace(this.GetStringCellValue(cell)))
+                        allCellsInRowEmpty = false;
                 }
             }
 
@@ -194,13 +199,21 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="defaultSetter">If necessary, when deserializers don't contain the function to handle the cell value for a particular column, can set a default one.
             /// The second arg is the current col index.
             /// </param>
-            public Config(uint sheetNo, DataArea area, Func<uint, T> recBuilder, List<DataDeserializer>? deserializers = null, Action<T, uint, string?>? defaultSetter = null) {
+            /// <param name="skipEmptyRows">Skip the empty rows (all the cells are empty) or not. If yes, the row won't yield a T object.</param>
+            public Config(
+                uint sheetNo,
+                DataArea area,
+                Func<uint, T> recBuilder,
+                List<DataDeserializer>? deserializers = null,
+                Action<T, uint, string?>? defaultSetter = null,
+                bool skipEmptyRows = true) {
 
                 this.SheetNo = sheetNo;
                 this.Area = area;
                 this.Deserializers = deserializers ?? [];
                 this.RecordBuilder = recBuilder;
                 this.DefaultSetter = defaultSetter;
+                this.SkipEmptyRows = skipEmptyRows;
             }
 
             /// <summary>
@@ -211,7 +224,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public List<DataDeserializer> Deserializers { get; private set; }
             public Func<uint, T> RecordBuilder { get; private set; }
             public Action<T, uint, string?>? DefaultSetter { get; private set; }
-
+            public bool SkipEmptyRows { get; private set; }
         }
 
         public abstract class DataDeserializer {
