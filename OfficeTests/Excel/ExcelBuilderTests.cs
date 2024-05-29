@@ -96,27 +96,27 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
 
             sheetBuilder.AddRow("No header:");
             sheetBuilder.AddTable(
-                [[(object)"abc", (object)123], ["def", 456], [null, 42533]],
-                new TableConfig<object[]>([
-                    new TableColumnConfig<object[], object>("Col_1", dataGetter: i => i[0]),
-                    new TableColumnConfig<object[], object>("Col_2", dataGetter: i => i[1])],
+                [["abc", 123], ["def", 456], [default, 42533]],
+                new TableConfig<object?[]>([
+                    new TableColumnConfig<object?[], object>("Col_1", dataGetter: i => i[0]),
+                    new TableColumnConfig<object?[], object>("Col_2", dataGetter: i => i[1])],
                 style: new TableStyle(showHeader: false)));
 
             sheetBuilder.AddRow("Total row:");
             sheetBuilder.AddTable(
-                [[(object)"abc", (object)123, DateTime.Now], ["def", 456, DateTime.Today], [null, 42533, DateTime.Today.AddDays(2)]],
-                new TableConfig<object[]>([
-                    new TableColumnConfig<object[], object>("Col_1", dataGetter: i => i[0]),
-                    new TableColumnConfig<object[], object>("Col_2", dataGetter: i => i[1], style: CellStyle.Integer_Default, totalFunction: ColumnTotalFunction.Average),
-                    new TableColumnConfig<object[], object>("Col_3", dataGetter: i => i[2], style: CellStyle.DateTime_Default, totalFunction: ColumnTotalFunction.Max)],
+                [["abc", 123, DateTime.Now], ["def", 456, DateTime.Today], [default, 42533, DateTime.Today.AddDays(2)]],
+                new TableConfig<object?[]>([
+                    new TableColumnConfig<object?[], object>("Col_1", dataGetter: i => i[0]),
+                    new TableColumnConfig<object?[], object>("Col_2", dataGetter: i => i[1], style: CellStyle.Integer_Default, totalFunction: ColumnTotalFunction.Average),
+                    new TableColumnConfig<object?[], object>("Col_3", dataGetter: i => i[2], style: CellStyle.DateTime_Default, totalFunction: ColumnTotalFunction.Max)],
                 style: new TableStyle()));
 
             sheetBuilder.AddRow("Different theme:", rowOffset: 2, style: CellStyle.Error);
             sheetBuilder.AddTable(
-                [[(object)"abc", (object)123], ["def", 456], [null, 42533]],
-                new TableConfig<object[]>([
-                    new TableColumnConfig<object[], object>("Col_1", dataGetter: i => i[0]),
-                    new TableColumnConfig<object[], object>("Col_2", dataGetter: i => i[1])],
+                [[(object?)"abc", (object?)123], ["def", 456], [default, 42533]],
+                new TableConfig<object?[]>([
+                    new TableColumnConfig<object?[], object>("Col_1", dataGetter: i => i[0]),
+                    new TableColumnConfig<object?[], object>("Col_2", dataGetter: i => i[1])],
                 style: new TableStyle(styleName: "TableStyleMedium3")));
 
             sheetBuilder.AddRow("Different date format:", rowOffset: 2, style: CellStyle.Quote);

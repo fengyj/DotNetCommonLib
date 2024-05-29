@@ -2,6 +2,62 @@
 
     public class RetryUtil {
 
+        public static void Execute<E>(Action action, RetryPolicy policy, Action<E, int> exceptionHandler)
+            where E : Exception {
+
+            for (var t = 1; t <= policy.MaxRetryTimes; t++) {
+                try {
+                    action();
+                    return;
+                }
+                catch (E ex) {
+
+                    if (exceptionHandler != null) exceptionHandler(ex, t);
+
+                    if (t < policy.MaxRetryTimes)
+                        Thread.Sleep(policy.Interval);
+                    else
+                        throw;
+                }
+            }
+
+            throw new ApplicationException(); // just for fixing the compile error 
+        }
+
+        public static void Execute<E1, E2>(Action action, RetryPolicy policy, Action<E1, int> exceptionHandlerForE1, Action<E2, int> exceptionHandlerForE2)
+            where E1 : Exception
+            where E2 : Exception {
+
+            CheckExceptionTypes(typeof(E1), typeof(E2));
+
+            for (var t = 1; t <= policy.MaxRetryTimes; t++) {
+                try {
+                    action();
+                    return;
+                }
+                catch (E1 ex) {
+
+                    if (exceptionHandlerForE1 != null) exceptionHandlerForE1(ex, t);
+
+                    if (t < policy.MaxRetryTimes)
+                        Thread.Sleep(policy.Interval);
+                    else
+                        throw;
+                }
+                catch (E2 ex) {
+
+                    if (exceptionHandlerForE2 != null) exceptionHandlerForE2(ex, t);
+
+                    if (t < policy.MaxRetryTimes)
+                        Thread.Sleep(policy.Interval);
+                    else
+                        throw;
+                }
+            }
+
+            throw new ApplicationException(); // just for fixing the compile error 
+        }
+
         public static T Execute<T, E>(Func<T> func, RetryPolicy policy, Action<E, int> exceptionHandler)
             where E : Exception {
 
@@ -56,12 +112,13 @@
             throw new ApplicationException(); // just for fixing the compile error 
         }
 
-        public static async Task<T> ExecuteAsync<T, E>(Task<T> task, RetryPolicy policy, Action<E, int> exceptionHandler)
+        public static async Task ExecuteAsync<E>(Func<Task> task, RetryPolicy policy, Action<E, int> exceptionHandler)
             where E : Exception {
 
             for (var t = 1; t <= policy.MaxRetryTimes; t++) {
                 try {
-                    return await task;
+                    await task();
+                    return;
                 }
                 catch (E ex) {
 
@@ -77,7 +134,7 @@
             throw new ApplicationException(); // just for fixing the compile error 
         }
 
-        public static async Task<T> ExecuteAsync<T, E1, E2>(Task<T> task, RetryPolicy policy, Action<E1, int> exceptionHandlerForE1, Action<E2, int> exceptionHandlerForE2)
+        public static async Task ExecuteAsync<E1, E2>(Func<Task> task, RetryPolicy policy, Action<E1, int> exceptionHandlerForE1, Action<E2, int> exceptionHandlerForE2)
             where E1 : Exception
             where E2 : Exception {
 
@@ -85,7 +142,62 @@
 
             for (var t = 1; t <= policy.MaxRetryTimes; t++) {
                 try {
-                    return await task;
+                    await task();
+                    return;
+                }
+                catch (E1 ex) {
+
+                    if (exceptionHandlerForE1 != null) exceptionHandlerForE1(ex, t);
+
+                    if (t < policy.MaxRetryTimes)
+                        await Task.Delay(policy.Interval);
+                    else
+                        throw;
+                }
+                catch (E2 ex) {
+
+                    if (exceptionHandlerForE2 != null) exceptionHandlerForE2(ex, t);
+
+                    if (t < policy.MaxRetryTimes)
+                        await Task.Delay(policy.Interval);
+                    else
+                        throw;
+                }
+            }
+
+            throw new ApplicationException(); // just for fixing the compile error 
+        }
+
+        public static async Task<T> ExecuteAsync<T, E>(Func<Task<T>> task, RetryPolicy policy, Action<E, int> exceptionHandler)
+            where E : Exception {
+
+            for (var t = 1; t <= policy.MaxRetryTimes; t++) {
+                try {
+                    return await task();
+                }
+                catch (E ex) {
+
+                    if (exceptionHandler != null) exceptionHandler(ex, t);
+
+                    if (t < policy.MaxRetryTimes)
+                        await Task.Delay(policy.Interval);
+                    else
+                        throw;
+                }
+            }
+
+            throw new ApplicationException(); // just for fixing the compile error 
+        }
+
+        public static async Task<T> ExecuteAsync<T, E1, E2>(Func<Task<T>> task, RetryPolicy policy, Action<E1, int> exceptionHandlerForE1, Action<E2, int> exceptionHandlerForE2)
+            where E1 : Exception
+            where E2 : Exception {
+
+            CheckExceptionTypes(typeof(E1), typeof(E2));
+
+            for (var t = 1; t <= policy.MaxRetryTimes; t++) {
+                try {
+                    return await task();
                 }
                 catch (E1 ex) {
 

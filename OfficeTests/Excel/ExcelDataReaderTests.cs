@@ -14,7 +14,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                     1,
                     new ExcelDataReader<NumberTable>.DataArea(2, 1, 8, 3),
                     c => new NumberTable(),
-                    new List<ExcelDataReader<NumberTable>.DataDeserializer>() {
+                    [
                         new ExcelDataReader<NumberTable>.TextDeserializer((o, v) => o.Comment = v, colIdx: 1),
                         new ExcelDataReader<NumberTable>.NumberDeserializer<double>(
                             (o, v) => o.ValueToCheck = v,
@@ -22,11 +22,12 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                         new ExcelDataReader<NumberTable>.NumberDeserializer<double>(
                             (o, v) => o.ExpectedValue = v,
                             colIdx: 3)
-                    });
+                    ]);
 
                 var data = reader.Read(cfg).Select(i => i.Data).ToList();
                 Assert.AreEqual(6, data.Count);
                 foreach (var item in data) {
+                    Assert.IsNotNull(item);
                     Assert.AreEqual(item.ExpectedValue, item.ValueToCheck);
                 }
             }
@@ -56,6 +57,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                 var data = reader.Read(cfg).Select(i => i.Data).ToList();
                 Assert.AreEqual(7, data.Count);
                 foreach (var item in data) {
+                    Assert.IsNotNull(item);
                     Assert.AreEqual(item.ExpectedValue, item.ValueToCheck);
                 }
             }

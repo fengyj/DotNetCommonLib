@@ -35,6 +35,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                 var count = 0;
                 foreach (var row in data) {
                     count++;
+                    Assert.IsNotNull(row);
                     Assert.AreEqual("1", row[0]);
                     Assert.AreEqual("str", row[1]);
                     Assert.AreEqual(DateTime.Today.ToString("yyyy-MM-ddTHH:mm:ss.fff"), row[2]);
@@ -43,13 +44,14 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                 Assert.AreEqual(10, count);
 
                 data = ExcelUtil.Read(tmpFile.FullName, 2, 2, 3).Select(i => i.Data); // sheet2
-                Assert.AreEqual(1, data.Sum(i => i.Count));
+                Assert.AreEqual(1, data.Sum(i => i?.Count ?? 0));
 
                 var reused = new List<string?>();
                 data = ExcelUtil.Read(tmpFile.FullName, 3, 1, 1, reused: reused).Select(i => i.Data);
                 count = 0;
                 foreach (var row in data) {
                     count++;
+                    Assert.IsNotNull(row);
                     if (count == 1) {
                         Assert.AreEqual("col1", row[0]);
                         Assert.AreEqual("col2", row[1]);

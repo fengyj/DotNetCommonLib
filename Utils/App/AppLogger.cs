@@ -61,7 +61,7 @@ namespace me.fengyj.CommonLib.Utils.App {
             }
             if (args != null && args.Where(a => !string.IsNullOrEmpty(a?.ToString())).Count() > 0) {
 
-                var argsInStr = args.Where(a => a != null).Select(a => a.ToString()).Select(selector: Regex.Escape).ToArray();
+                var argsInStr = args.Where(a => a != null).Select(a => a.ToString()).Select(selector: s => s == null ? null : Regex.Escape(s)).ToArray();
                 var regex = new Regex($"({string.Join('|', argsInStr)})");
 
                 ConsoleExt.WriteLine(
