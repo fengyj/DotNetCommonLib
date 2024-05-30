@@ -29,7 +29,7 @@ namespace me.fengyj.CommonLib.Utils {
             this.regex = new Regex($"\\{{(?<id>{variableNameRegex})(,-?\\d+)?(:[^\\{{}}]+)?}}", RegexOptions.Compiled);
         }
 
-        public string GetText(string template, Func<string, object> valueGetter) {
+        public string GetText(string template, Func<string, object?> valueGetter) {
 
             var vars = new List<string>();
             var evaluator = new MatchEvaluator(match => {
@@ -43,8 +43,11 @@ namespace me.fengyj.CommonLib.Utils {
             return string.Format(fmt, vars.Select(v => valueGetter(v)).ToArray());
         }
 
-        public string GetText(string template, Dictionary<string, object> vars) {
-            return this.GetText(template, v => vars[v]);
+        public string GetText(string template, Dictionary<string, object?> vars, bool nullIfVariableNotExists = false) {
+            if (nullIfVariableNotExists)
+                return this.GetText(template, v => vars.TryGetValue(v, out var o) ? o : null);
+            else
+                return this.GetText(template, v => vars[v]);
         }
     }
 }

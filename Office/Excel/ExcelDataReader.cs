@@ -268,6 +268,20 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public string? TableColumnName { get; set; }
 
             public abstract void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader);
+
+            protected Action<Record, V> GetValueSetterWrapper<V>(Action<T, V> action) {
+                return (rec, v) => {
+                    try {
+                        if (rec.Data == null)
+                            rec.AddCellError(this.colName, "Data hasn't been initialized.");
+                        else
+                            action(rec.Data, v);
+                    }
+                    catch (Exception ex) {
+                        rec.AddCellError(this.colName, ex.Message);
+                    }
+                };
+            }
         }
 
         public class TextDeserializer : DataDeserializer {
@@ -275,7 +289,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <summary>
             /// Constructor
             /// </summary>
-            /// <param name="valueSetter">The action to update the value to the object</param>
+            /// <param name="valueSetter">The action to update the value to the object.
+            /// Can define other logics in this setter, like converting the value from the cell to others; 
+            /// or verifying the value, and if it's not valid, throw an exception</param>
             /// <param name="colIdx">The value in which column in the sheet. Index starts from 1.</param>
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
@@ -284,17 +300,17 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public TextDeserializer(Action<T, string?> valueSetter, uint? colIdx = null, string? colName = null, string? tblColName = null, string? defaultValue = null)
                 : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
 
-                this.ValueSetter = valueSetter;
+                this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
             }
 
-            public Action<T, string?> ValueSetter { get; private set; }
+            public Action<Record, string?> ValueSetter { get; private set; }
             public string? DefaultValue { get; private set; }
             public override void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader) {
 
                 var val = reader.GetStringCellValue(cell);
                 if (rec.Data != null)
-                    this.ValueSetter(rec.Data, val ?? this.DefaultValue);
+                    this.ValueSetter(rec, val ?? this.DefaultValue);
                 else
                     rec.Error = "Data is not initialized.";
             }
@@ -305,7 +321,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <summary>
             /// Constructor
             /// </summary>
-            /// <param name="valueSetter">The action to update the value to the object</param>
+            /// <param name="valueSetter">The action to update the value to the object.
+            /// Can define other logics in this setter, like converting the value from the cell to others; 
+            /// or verifying the value, and if it's not valid, throw an exception</param>
             /// <param name="parser">The parser is used when the cell data type is string.</param>
             /// <param name="colIdx">The value in which column in the sheet. Index starts from 1.</param>
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
@@ -320,7 +338,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 string? tblColName = null,
                 DateTime? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
 
-                this.ValueSetter = valueSetter;
+                this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
                 this.Parser = parser;
             }
@@ -328,7 +346,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <summary>
             /// 
             /// </summary>
-            /// <param name="valueSetter">The action to update the value to the object</param>
+            /// <param name="valueSetter">The action to update the value to the object.
+            /// Can define other logics in this setter, like converting the value from the cell to others; 
+            /// or verifying the value, and if it's not valid, throw an exception</param>
             /// <param name="dateFormat">The format is  used when the cell data type is string.</param>
             /// <param name="colIdx">The value in which column in the sheet. Index starts from 1.</param>
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
@@ -343,7 +363,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 string? tblColName = null,
                 DateTime? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
 
-                this.ValueSetter = valueSetter;
+                this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
                 this.Parser = str => {
 
@@ -357,7 +377,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <summary>
             /// 
             /// </summary>
-            /// <param name="valueSetter">The action to update the value to the object</param>
+            /// <param name="valueSetter">The action to update the value to the object.
+            /// Can define other logics in this setter, like converting the value from the cell to others; 
+            /// or verifying the value, and if it's not valid, throw an exception</param>
             /// <param name="dateFormats">The formats are used when the cell data type is string.</param>
             /// <param name="colIdx">The value in which column in the sheet. Index starts from 1.</param>
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
@@ -372,7 +394,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 string? tblColName = null,
                 DateTime? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
 
-                this.ValueSetter = valueSetter;
+                this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
                 this.Parser = str => {
 
@@ -384,7 +406,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 };
             }
 
-            public Action<T, DateTime?> ValueSetter { get; private set; }
+            public Action<Record, DateTime?> ValueSetter { get; private set; }
             public DateTime? DefaultValue { get; private set; }
             public Func<string?, DateTime?> Parser { get; private set; }
 
@@ -398,9 +420,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 if (cell.DataType?.Value == CellValues.Date) {
 
                     if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else if (DateTime.TryParse(cell.CellValue?.InnerText, out var date))
-                        this.ValueSetter(rec.Data, date);
+                        this.ValueSetter(rec, date);
                     else
                         rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to a DateTime value.");
                 }
@@ -409,11 +431,11 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     var str = reader.GetStringCellValue(cell);
                     var val = this.Parser(str);
                     if (val.HasValue)
-                        this.ValueSetter(rec.Data, val.Value);
+                        this.ValueSetter(rec, val.Value);
                     else if (double.TryParse(cell.CellValue?.InnerText, out var d) && (d < 2958466.0 && d > -657435.0)) // this is the valid range of OADate
-                        this.ValueSetter(rec.Data, DateTime.FromOADate(d));
+                        this.ValueSetter(rec, DateTime.FromOADate(d));
                     else if (string.IsNullOrEmpty(str))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else
                         rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a DateTime value.");
                 }
@@ -422,10 +444,10 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     var str = reader.GetStringCellValue(cell);
                     if (string.IsNullOrWhiteSpace(str))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else {
                         var val = this.Parser(str);
-                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        if (val.HasValue) this.ValueSetter(rec, val.Value);
                         else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a DateTime value.");
                     }
                 }
@@ -437,7 +459,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <summary>
             /// 
             /// </summary>
-            /// <param name="valueSetter">The action to update the value to the object</param>
+            /// <param name="valueSetter">The action to update the value to the object.
+            /// Can define other logics in this setter, like converting the value from the cell to others; 
+            /// or verifying the value, and if it's not valid, throw an exception</param>
             /// <param name="parser">The parser is used when the cell data type is string.</param>
             /// <param name="colIdx">The value in which column in the sheet. Index starts from 1.</param>
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
@@ -452,12 +476,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 string? tblColName = null,
                 TimeSpan? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
 
-                this.ValueSetter = valueSetter;
+                this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
                 this.Parser = parser ?? (str => TimeSpan.TryParse(str, out var ts) ? ts : default);
             }
 
-            public Action<T, TimeSpan?> ValueSetter { get; private set; }
+            public Action<Record, TimeSpan?> ValueSetter { get; private set; }
             public TimeSpan? DefaultValue { get; private set; }
             public Func<string?, TimeSpan?> Parser { get; private set; }
 
@@ -471,9 +495,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 if (cell.DataType?.Value == CellValues.Date) {
 
                     if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else if (DateTime.TryParse(cell.CellValue?.InnerText, out var date))
-                        this.ValueSetter(rec.Data, date.TimeOfDay);
+                        this.ValueSetter(rec, date.TimeOfDay);
                     else
                         rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to TimeSpan value.");
                 }
@@ -481,12 +505,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     var str = reader.GetStringCellValue(cell);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
-                        this.ValueSetter(rec.Data, DateTime.FromOADate(d).TimeOfDay);
+                        this.ValueSetter(rec, DateTime.FromOADate(d).TimeOfDay);
                     else if (string.IsNullOrEmpty(str))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else {
                         var val = this.Parser(str);
-                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        if (val.HasValue) this.ValueSetter(rec, val.Value);
                         else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a TimeSpan value.");
                     }
                 }
@@ -495,10 +519,10 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     var str = reader.GetStringCellValue(cell);
                     if (string.IsNullOrWhiteSpace(str))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else {
                         var val = this.Parser(str);
-                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        if (val.HasValue) this.ValueSetter(rec, val.Value);
                         else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a TimeSpan value.");
                     }
                 }
@@ -510,7 +534,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <summary>
             /// 
             /// </summary>
-            /// <param name="valueSetter">The action to update the value to the object</param>
+            /// <param name="valueSetter">The action to update the value to the object.
+            /// Can define other logics in this setter, like converting the value from the cell to others; 
+            /// or verifying the value, and if it's not valid, throw an exception</param>
             /// <param name="parser">The parser is used when the cell data type is string.</param>
             /// <param name="colIdx">The value in which column in the sheet. Index starts from 1.</param>
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
@@ -525,12 +551,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 string? tblColName = null,
                 bool? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
 
-                this.ValueSetter = valueSetter;
+                this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
-                this.Parser = parser ?? (str => bool.TryParse(str, out var ts) ? ts : default);
+                this.Parser = parser ?? (str => bool.TryParse(str, out var ts) && ts);
             }
 
-            public Action<T, bool?> ValueSetter { get; private set; }
+            public Action<Record, bool?> ValueSetter { get; private set; }
             public bool? DefaultValue { get; private set; }
             public Func<string?, bool?> Parser { get; private set; }
 
@@ -544,9 +570,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 if (cell.DataType?.Value == CellValues.Boolean) {
 
                     if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else if (bool.TryParse(cell.CellValue?.InnerText, out var b))
-                        this.ValueSetter(rec.Data, b);
+                        this.ValueSetter(rec, b);
                     else
                         rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to Boolean value.");
                 }
@@ -554,12 +580,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     var str = reader.GetStringCellValue(cell);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
-                        this.ValueSetter(rec.Data, d != 0);
+                        this.ValueSetter(rec, d != 0);
                     else if (string.IsNullOrEmpty(str))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else {
                         var val = this.Parser(str);
-                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        if (val.HasValue) this.ValueSetter(rec, val.Value);
                         else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a Boolean value.");
                     }
                 }
@@ -568,10 +594,10 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     var str = reader.GetStringCellValue(cell);
                     if (string.IsNullOrWhiteSpace(str))
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     else {
                         var val = this.Parser(str);
-                        if (val.HasValue) this.ValueSetter(rec.Data, val.Value);
+                        if (val.HasValue) this.ValueSetter(rec, val.Value);
                         else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a Boolean value.");
                     }
                 }
@@ -601,7 +627,10 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <summary>
             /// 
             /// </summary>
-            /// <param name="valueSetter">The action to update the value to the object</param>
+            /// <param name="valueSetter">The action to update the value to the object.
+            /// Can define other logics in this setter, like converting the value from the cell to others; 
+            /// or verifying the value, and if it's not valid, throw an exception.
+            /// </param>
             /// <param name="parser">The parser is used when the cell data type is string.</param>
             /// <param name="colIdx">The value in which column in the sheet. Index starts from 1.</param>
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
@@ -616,12 +645,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 string? tblColName = null,
                 V? defaultValue = default) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
 
-                this.ValueSetter = valueSetter;
+                this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.Parser = parser;
                 this.DefaultValue = defaultValue;
             }
 
-            public Action<T, V?> ValueSetter { get; private set; }
+            public Action<Record, V?> ValueSetter { get; private set; }
             public V? DefaultValue { get; private set; }
             public Func<string?, V?>? Parser { get; private set; }
 
@@ -638,15 +667,15 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     var val = defaultParser(cell.CellValue?.InnerText);
 
                     if (val != null) {
-                        this.ValueSetter(rec.Data, val);
+                        this.ValueSetter(rec, val);
                     }
                     else if (string.IsNullOrEmpty(str)) {
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     }
                     else if (this.Parser != null) {
 
                         val = this.Parser(str);
-                        if (val != null) this.ValueSetter(rec.Data, val);
+                        if (val != null) this.ValueSetter(rec, val);
                         else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.");
                     }
                     else {
@@ -658,12 +687,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     var str = reader.GetStringCellValue(cell);
                     if (string.IsNullOrWhiteSpace(str)) {
-                        this.ValueSetter(rec.Data, this.DefaultValue);
+                        this.ValueSetter(rec, this.DefaultValue);
                     }
                     else {
 
                         var val = (this.Parser ?? defaultParser)(str);
-                        if (val != null) this.ValueSetter(rec.Data, val);
+                        if (val != null) this.ValueSetter(rec, val);
                         else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.");
                     }
                 }
