@@ -167,6 +167,18 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
             Console.WriteLine(DateTime.Now);
         }
 
+        [TestMethod]
+        public void InvalidCharsInSheetNameTest() {
+
+            var builder = new ExcelBuilder();
+
+            var sheet = builder.AppendSheet("`~!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?");
+            Assert.AreEqual("`~!@#$%^&()-_=+{}|;'\",<.>", sheet.SheetNameForBuild);
+
+            sheet = builder.AppendSheet("  \t中文_english[]");
+            Assert.AreEqual(" 中文_english", sheet.SheetNameForBuild);
+        }
+
         public class SampleData {
             public string? StringValue { get; set; }
             public int? IntValue { get; set; }

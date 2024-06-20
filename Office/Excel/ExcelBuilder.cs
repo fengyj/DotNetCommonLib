@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Text.RegularExpressions;
 
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -8,6 +9,11 @@ using me.fengyj.CommonLib.Utils;
 
 namespace me.fengyj.CommonLib.Office.Excel {
     public class ExcelBuilder {
+
+        private static readonly Regex SheetNameInvalidCharacters = new Regex(@"[\*\[\]\\\:\?\/\x00-\x1F\x7F\r\n\0]", RegexOptions.Compiled);
+        private static readonly Regex TableNameInvalidCharacters = new Regex(@"[\`\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\""\,\<\.\>\/\?\x00-\x1F\x7F\r\n\0]", RegexOptions.Compiled);
+        private static readonly Regex TableNameInvalidLeadingChar = new Regex("^[0-9]", RegexOptions.Compiled);
+        private static readonly Regex SpaceCharacters = new Regex("\\s+", RegexOptions.Compiled);
 
         public List<SheetBuilder> SheetBuilders { get; private set; } = [];
         internal List<string> SheetNames { get; private set; } = [];
@@ -73,14 +79,28 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         internal string TryAddOrGetSheetName(string? name) {
 
-            if (string.IsNullOrWhiteSpace(name)) name = $"Sheet{this.SheetNames.Count + 1}";
+            if (string.IsNullOrWhiteSpace(name)) {
+                name = $"Sheet{this.SheetNames.Count + 1}";
+            }
+            else {
+                name = SheetNameInvalidCharacters.Replace(name, "");
+                name = SpaceCharacters.Replace(name, " ");
+                if (string.IsNullOrWhiteSpace(name)) name = $"Sheet{this.SheetNames.Count + 1}";
+            }
             return StringUtil.TryAddOrGetNewNameIfDuplicated(this.SheetNames, name, maxLength: 31); // the sheet name cannot longer than 31.
         }
 
         internal string TryAddOrGetTableName(string? name) {
 
-            if (string.IsNullOrWhiteSpace(name)) name = $"Table{this.TableNames.Count + 1}";
-            name = name.Replace(' ', '_');
+            if (string.IsNullOrWhiteSpace(name)) {
+                name = $"Table{this.TableNames.Count + 1}";
+            }
+            else {
+                name = TableNameInvalidCharacters.Replace(name, "");
+                name = SpaceCharacters.Replace(name, "_");
+                if (string.IsNullOrWhiteSpace(name)) name = $"Table{this.TableNames.Count + 1}";
+                else if (TableNameInvalidLeadingChar.IsMatch(name)) name = "_" + name;
+            }
             return StringUtil.TryAddOrGetNewNameIfDuplicated(this.TableNames, name);
         }
 
