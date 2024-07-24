@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Drawing;
 
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -59,6 +58,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
     public class CellStyle {
 
+        private static readonly object lockObj = new object();
         private static volatile int Seq = -1;
         private static readonly ConcurrentBag<CellStyle> styles = [];
         private static Dictionary<string, CellStyle>? namedStyles;
@@ -195,7 +195,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public static CellStyle? GetNamedStyle(string name) {
 
             if (namedStyles == null) {
-                lock (typeof(CellStyle)) {
+                lock (lockObj) {
                     if (namedStyles == null) {
 
                         var dict = new Dictionary<string, CellStyle>();
@@ -243,7 +243,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public static IEnumerable<FillStyle> GetStyles() => styles.OrderBy(s => s.StyleId).ToList();
 
         private static HexBinaryValue GetColor(System.Drawing.Color color) {
-            return new HexBinaryValue { Value = ColorTranslator.ToHtml(color).Replace("#", "") };
+            return HexBinaryValue.Create(color.A, color.R, color.G, color.B);
         }
     }
 
@@ -299,13 +299,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public static IEnumerable<FontStyle> GetStyles() => styles.OrderBy(s => s.StyleId).ToList();
 
         private static HexBinaryValue GetColor(System.Drawing.Color color) {
-            return new HexBinaryValue {
-                Value = ColorTranslator.ToHtml(System.Drawing.Color.FromArgb(
-                          color.A,
-                          color.R,
-                          color.G,
-                          color.B)).Replace("#", "")
-            };
+            return HexBinaryValue.Create(color.A, color.R, color.G, color.B);
         }
     }
 

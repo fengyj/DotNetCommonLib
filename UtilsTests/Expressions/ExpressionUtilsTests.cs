@@ -7,7 +7,19 @@ namespace UtilsTests.Expressions {
 
         [TestMethod]
         public void Test_GetPropertyPath() {
-            var path = ExpressionUtils.GetPropertyPath(propertyExp: (ClassA a) => a.B == null ? null : a.B.Date);
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            var path = ExpressionUtils.GetPropertyPath(propertyExp: (ClassA a) => a.B.Date);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        }
+
+        [TestMethod]
+        public void Test_GetPropertyExp() {
+
+            var exp = ExpressionUtils.GetPropertySetterExp<ClassA, string>(nameof(ClassA.Name));
+            var func = exp.Compile();
+            var a = new ClassA();
+            func(a, "E");
+            Assert.AreEqual("E", a.Name);
         }
     }
 

@@ -35,7 +35,7 @@ namespace me.fengyj.CommonLib.Utils.Expressions {
         /// <summary>
         /// return a lambda expression base on the obj type and property path
         /// </summary>
-        /// <typeparam name="TObj"></typeparam>
+        /// <typeparam name="T"></typeparam>
         /// <param name="propertyPath"></param>
         /// <returns></returns>
         /// <remarks>not support indexed property</remarks>
@@ -45,8 +45,29 @@ namespace me.fengyj.CommonLib.Utils.Expressions {
         /// >> post => post.Blog.Author.Name
         /// ]]>
         /// </example>
-        public static LambdaExpression GetPropertyExp<TObj>(string propertyPath) {
-            return GetPropertyExp(typeof(TObj), propertyPath);
+        public static LambdaExpression GetPropertyExp<T>(string propertyPath) {
+            return GetPropertyExp(typeof(T), propertyPath);
+        }
+
+        /// <summary>
+        /// return a lambda expression base on the obj type and property path
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="propertyPath"></param>
+        /// <returns></returns>
+        /// <remarks>not supports indexed property</remarks>
+        /// <example>
+        /// <![CDATA[
+        /// GetPropExp<Post>("Blog.Author.Name")
+        /// >> post => post.Blog.Author.Name
+        /// ]]>
+        /// </example>
+        public static Expression<Func<T, V>> GetPropertyExp<T, V>(string propertyPath) {
+
+            if (GetPropertyExp(typeof(T), propertyPath) is Expression<Func<T, V>> exp)
+                return exp;
+            throw new ArgumentException($"The property {propertyPath} doesn't match the type {typeof(V).Name}.", nameof(propertyPath));
         }
 
         /// <summary>
@@ -68,15 +89,19 @@ namespace me.fengyj.CommonLib.Utils.Expressions {
             var lambdaExp = propDict.GetOrAdd(propertyPath, path => {
 
                 var paramExp = Expression.Parameter(type);
+
                 var props = path.Split('.');
+                var objType = type;
 
                 Expression propExp = paramExp;
-                var objType = type;
                 foreach (var p in props) {
-                    var propInfo = objType.GetProperty(p)
-                        ?? throw new ArgumentException($"Cannot find the property {p} in {objType.Name}.", nameof(propertyPath));
-                    propExp = Expression.Property(propExp, propInfo);
-                    objType = propInfo.PropertyType;
+                    propExp = Expression.PropertyOrField(propExp, p);
+                    if (propExp is MemberExpression exp)
+                        if (exp.Member is FieldInfo fInfo) objType = fInfo.FieldType;
+                        else if (exp.Member is PropertyInfo pInfo) objType = pInfo.PropertyType;
+                        else throw new ApplicationException();
+                    else
+                        throw new ArgumentException($"Cannot find {p} in type {objType.Name}.", nameof(propertyPath));
                 }
                 return Expression.Lambda(propExp, paramExp);
             });
@@ -84,6 +109,39 @@ namespace me.fengyj.CommonLib.Utils.Expressions {
             // for outside, we don't know how the expression will be used, 
             // so for safety, return a brand new object
             return ClonePropertyExp(lambdaExp);
+        }
+
+        /// <summary>
+        /// Get a property setter expression. (obj, v) => obj.Property = v;
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="propertyPath"></param>
+        /// <returns></returns>
+        public static Expression<Action<T, V>> GetPropertySetterExp<T, V>(string propertyPath) {
+
+            var getter = GetPropertyExp<T, V>(propertyPath);
+            var propExp = getter.Body;
+            var paramObjExp = getter.Parameters[0];
+            var paramValExp = Expression.Parameter(getter.ReturnType);
+            var assignExp = Expression.Assign(propExp, paramValExp);
+            return Expression.Lambda<Action<T, V>>(assignExp, paramObjExp, paramValExp);
+        }
+
+        /// <summary>
+        /// Get a property setter expression. (obj, v) => obj.Property = v;
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="propertyPath"></param>
+        /// <returns></returns>
+        public static LambdaExpression GetPropertySetterExp(Type type, string propertyPath) {
+
+            var getter = GetPropertyExp(type, propertyPath);
+            var propExp = getter.Body;
+            var paramObjExp = getter.Parameters[0];
+            var paramValExp = Expression.Parameter(getter.ReturnType);
+            var assignExp = Expression.Assign(propExp, paramValExp);
+            return Expression.Lambda(assignExp, paramObjExp, paramValExp);
         }
 
         private static LambdaExpression ClonePropertyExp(LambdaExpression lambdaExp) {
@@ -101,26 +159,6 @@ namespace me.fengyj.CommonLib.Utils.Expressions {
                 exp = Expression.Property(exp, memberInfo);
             }
             return Expression.Lambda(exp, paramExp);
-        }
-
-        /// <summary>
-        /// return a lambda expression base on the obj type and property path
-        /// </summary>
-        /// <typeparam name="TObj"></typeparam>
-        /// <typeparam name="TProperty"></typeparam>
-        /// <param name="propertyPath"></param>
-        /// <returns></returns>
-        /// <remarks>not supports indexed property</remarks>
-        /// <example>
-        /// <![CDATA[
-        /// GetPropExp<Post>("Blog.Author.Name")
-        /// >> post => post.Blog.Author.Name
-        /// ]]>
-        /// </example>
-        public static Expression<Func<TObj, TProperty>> GetPropertyExp<TObj, TProperty>(string propertyPath) {
-            if (GetPropertyExp(typeof(TObj), propertyPath) is Expression<Func<TObj, TProperty>> exp)
-                return exp;
-            throw new ArgumentException($"The property {propertyPath} doesn't match the type {typeof(TProperty).Name}.", nameof(propertyPath));
         }
 
         /// <summary>

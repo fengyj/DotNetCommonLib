@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 
 using me.fengyj.CommonLib.Utils;
 
@@ -41,6 +42,11 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 this.SheetBuilders.ForEach(b => b.BuildTo(workbook));
 
                 SheetStyleBuilder.BuildTo(workbookPart);
+
+                var errors = new OpenXmlValidator().Validate(workbook).ToList();
+                if (errors.Count > 0) {
+                    throw new OpenXmlValidationException(errors.Select((e, i) => $"{i + 1} - {e.Description}, Path: {e.Path?.XPath}, Id: {e.Id}.").ToArray());
+                }
 
                 workbook.Save();
                 workbook.Dispose();
