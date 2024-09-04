@@ -222,9 +222,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     var idx = colIdx;
                     var cellStyle = (cellStyles?.ContainsKey(c.ColumnName) ?? false) ? cellStyles[c.ColumnName] : null;
-                    if (cellStyles == null && cellStyle == null && c.DataType == typeof(DateTime)) {
-                        if (IsAllDateWithoutTime(dataTable, idx))
-                            cellStyle = CellStyle.Date_Default;
+                    if (cellStyle == null && c.DataType == typeof(DateTime) && IsAllDateWithoutTime(dataTable, idx)) {
+                        cellStyle = CellStyle.Date_Default;
                     }
 
                     columns.Add(new TableColumnConfig<DataRow, object>(

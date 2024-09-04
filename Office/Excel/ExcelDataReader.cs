@@ -14,6 +14,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
         private int isDisposed = 0;
 
         public ExcelDataReader(string filePath) {
+            // if OpenXmlPackageException was thrown, there is a bug that the file is opened and not released. 
+            // then the file cannot be changed till the process is closed.
             this.doc = SpreadsheetDocument.Open(filePath, false);
         }
 
@@ -22,11 +24,11 @@ namespace me.fengyj.CommonLib.Office.Excel {
             T? reused = default) {
 
             var sheet = this.doc.WorkbookPart?.Workbook.Sheets?.Skip((int)config.SheetNo - 1).FirstOrDefault();
-            if (sheet == null || sheet is not Sheet s) yield break;
+            if (sheet is not Sheet s) yield break;
             var sheetPart = this.doc.WorkbookPart?.GetPartById(s.Id?.Value ?? "");
             if (sheetPart == null) yield break;
 
-            // todo: get col index if it's not provided
+            // TODO: get col index if it's not provided
 
 #pragma warning disable CS8629 // Nullable value type may be null.
             var dict = config.Deserializers.Where(i => i.ColumnIndex.HasValue).GroupBy(i => i.ColumnIndex.Value).ToDictionary(i => i.Key, i => i.ToList());
@@ -117,7 +119,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                         config.DefaultSetter(rec.Data, currentColIdx, this.GetStringCellValue(cell));
                     }
 
-                    if (!string.IsNullOrWhiteSpace(this.GetStringCellValue(cell)))
+                    if (allCellsInRowEmpty && !string.IsNullOrWhiteSpace(this.GetStringCellValue(cell)))
                         allCellsInRowEmpty = false;
                 }
             }
