@@ -128,7 +128,12 @@ body {background:#fefefe;font-family:Verdana,sans-serif;font-size:11.0pt;color:#
         }
 
         public static ListBuilder Create(IEnumerable<string> items, string? inlineListStyle = null) {
-            return new ListBuilder(inlineListStyle).AppendItem(items);
+
+            var build = new ListBuilder(inlineListStyle);
+            foreach (var item in items) {
+                build.AppendItem(item);
+            }
+            return build;
         }
 
         public static ListBuilder Create(IEnumerable<IEnumerable<string>> paragraphList, string? inlineListStyle = null) {
@@ -160,9 +165,7 @@ body {background:#fefefe;font-family:Verdana,sans-serif;font-size:11.0pt;color:#
         }
 
         public ListBuilder AppendItem(IEnumerable<string> item, string? inlineTextStyle = null) {
-
-            this.contents.Add([ParagraphBuilder.Create(item.Select(i => TextBuilder.Create(i, inlineTextStyle)).ToList())]);
-            return this;
+            return this.AppendItem(item.Select(i => ParagraphBuilder.Create(i, inlineTextStyle)));
         }
 
         public ListBuilder AppendItem(ParagraphBuilder paragraphBuilder) {

@@ -58,62 +58,68 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
     public class CellStyle {
 
-        private static readonly object lockObj = new object();
         private static volatile int Seq = -1;
         private static readonly ConcurrentBag<CellStyle> styles = [];
-        private static Dictionary<string, CellStyle>? namedStyles;
+        private static readonly ConcurrentDictionary<string, CellStyle>? namedStyles = new();
 
         #region default styles
 
-        public static readonly CellStyle None = new(); // this should be the first one as the default cell style
-        public static readonly CellStyle H1 = new(fontStyle: FontStyle.H1);
-        public static readonly CellStyle H2 = new(fontStyle: FontStyle.H2);
-        public static readonly CellStyle H3 = new(fontStyle: FontStyle.H3);
-        public static readonly CellStyle Normal = new(fontStyle: FontStyle.Normal);
-        public static readonly CellStyle Bold = new(fontStyle: FontStyle.Bold);
-        public static readonly CellStyle Italic = new(fontStyle: FontStyle.Italic);
-        public static readonly CellStyle Emphasize = new(fontStyle: FontStyle.Emphasize);
-        public static readonly CellStyle Warning = new(fontStyle: FontStyle.Warning);
-        public static readonly CellStyle Error = new(fontStyle: FontStyle.Error);
-        public static readonly CellStyle Quote = new(fontStyle: FontStyle.Quote);
+        public static readonly CellStyle None = new(nameof(None)); // this should be the first one as the default cell style
+        public static readonly CellStyle H1 = new(name: nameof(H1), fontStyle: FontStyle.H1);
+        public static readonly CellStyle H2 = new(name: nameof(H2), fontStyle: FontStyle.H2);
+        public static readonly CellStyle H3 = new(name: nameof(H3), fontStyle: FontStyle.H3);
+        public static readonly CellStyle Normal = new(name: nameof(Normal), fontStyle: FontStyle.Normal);
+        public static readonly CellStyle Bold = new(name: nameof(Bold), fontStyle: FontStyle.Bold);
+        public static readonly CellStyle Italic = new(name: nameof(Italic), fontStyle: FontStyle.Italic);
+        public static readonly CellStyle Emphasize = new(name: nameof(Emphasize), fontStyle: FontStyle.Emphasize);
+        public static readonly CellStyle Warning = new(name: nameof(Warning), fontStyle: FontStyle.Warning);
+        public static readonly CellStyle Error = new(name: nameof(Error), fontStyle: FontStyle.Error);
+        public static readonly CellStyle Quote = new(name: nameof(Quote), fontStyle: FontStyle.Quote);
 
-        public static readonly CellStyle TableHeader = new(fontStyle: FontStyle.TableHeader);
-        public static readonly CellStyle TableFooter = new(fontStyle: FontStyle.Mono_Normal, alignmentStyle: AlignmentStyle.Right);
+        public static readonly CellStyle TableHeader = new(name: nameof(TableHeader), fontStyle: FontStyle.TableHeader);
+        public static readonly CellStyle TableFooter = new(name: nameof(TableFooter), fontStyle: FontStyle.Mono_Normal, alignmentStyle: AlignmentStyle.Right);
 
-        public static readonly CellStyle Hyperlink = new(fontStyle: FontStyle.Hyperlink);
+        public static readonly CellStyle Hyperlink = new(name: nameof(Hyperlink), fontStyle: FontStyle.Hyperlink);
 
         public static readonly CellStyle Integer_Default = new(
+            name: nameof(Integer_Default),
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: DefaultStyleConfig.Numbering.DefaultInteger,
             alignmentStyle: AlignmentStyle.Right,
             cellValueType: CellValues.Number);
         public static readonly CellStyle Decimal_Default = new(
+            name: nameof(Decimal_Default),
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: DefaultStyleConfig.Numbering.DefaultDecimal,
             alignmentStyle: AlignmentStyle.Right,
             cellValueType: CellValues.Number);
 
         public static readonly CellStyle DateTime_Default = new(
+            name: nameof(DateTime_Default),
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: DefaultStyleConfig.Numbering.DefaultDateTime,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
         public static readonly CellStyle Date_Default = new(
+            name: nameof(Date_Default),
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: DefaultStyleConfig.Numbering.DefaultDate,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
         public static readonly CellStyle Time_Default = new(
+            name: nameof(Time_Default),
             fontStyle: FontStyle.Mono_Normal,
             numberingStyle: DefaultStyleConfig.Numbering.DefaultTime,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Date);
 
         public static readonly CellStyle Timespan_Default = new(
+            name: nameof(Timespan_Default),
             fontStyle: FontStyle.Mono_Normal,
             alignmentStyle: AlignmentStyle.Right); // the value should be converted to string with the format: "[-][d:]hh:mm:ss"
 
         public static readonly CellStyle Bool_Default = new(
+            name: nameof(Bool_Default),
             fontStyle: FontStyle.Normal,
             alignmentStyle: AlignmentStyle.Center,
             cellValueType: CellValues.Boolean);
@@ -121,6 +127,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         #endregion
 
         public CellStyle(
+            string? name = null,
             NumberingStyle? numberingStyle = null,
             FontStyle? fontStyle = null,
             FillStyle? fillStyle = null,
@@ -139,13 +146,19 @@ namespace me.fengyj.CommonLib.Office.Excel {
             this.CellValueType = cellValueType ?? CellValues.InlineString;
             this.Format = numberingStyle?.Format?.FormatCode?.Value;
             styles.Add(this);
+            if (name != null) {
+                if (!namedStyles.TryAdd(name, this))
+                    throw new ArgumentException($"The style {name} has been defined.");
+            }
             TooManyStylesException.Check(styles);
         }
 
-        private CellStyle() {
+        private CellStyle(string name) {
 
             this.CellFormat = new();
             styles.Add(this);
+            if (!namedStyles.TryAdd(name, this))
+                throw new ArgumentException($"The style {name} has been defined.");
         }
         public uint StyleId { get; private set; } = (uint)Interlocked.Increment(ref Seq);
         public CellFormat CellFormat { get; private set; }
@@ -194,21 +207,6 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public static CellStyle? GetNamedStyle(string name) {
 
-            if (namedStyles == null) {
-                lock (lockObj) {
-                    if (namedStyles == null) {
-
-                        var dict = new Dictionary<string, CellStyle>();
-                        var fieldds = typeof(CellStyle).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
-                            .Where(f => f.FieldType == typeof(CellStyle));
-                        foreach (var f in fieldds) {
-                            var o = f.GetValue(null);
-                            if (o is CellStyle cs) dict.Add(f.Name, cs);
-                        }
-                        namedStyles = dict;
-                    }
-                }
-            }
             if (namedStyles.TryGetValue(name, out var s)) return s;
             else return null;
         }

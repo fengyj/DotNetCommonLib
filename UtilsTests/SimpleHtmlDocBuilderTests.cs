@@ -17,6 +17,8 @@ namespace UtilsTests {
                                 .AppendParagraph(ParagraphBuilder.CreateInRed("warning: ")
                                 .AppendInBlue("this is a test mail.")
                                 .Append(LinkBuilder.Create("http://google.com", "google")))
+                                .AppendList(ListBuilder.Create(new string[] { "item 1", "item 2" }))
+                                .AppendList(ListBuilder.Create(new string[][] { ["item 1", "line 2 of item 1"], ["item 2", "line 2 of item 2"] }))
                          .Build();
 
             Assert.IsNotNull(html);
