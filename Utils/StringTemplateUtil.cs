@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 namespace me.fengyj.CommonLib.Utils {
     /// <summary>
@@ -25,7 +26,7 @@ namespace me.fengyj.CommonLib.Utils {
         /// constructor
         /// </summary>
         /// <param name="variableNameRegex">regex of the variable name</param>
-        public StringTemplateUtil(string variableNameRegex) {
+        public StringTemplateUtil([StringSyntax("Regex")] string variableNameRegex) {
             this.regex = new Regex($"\\{{(?<id>{variableNameRegex})(,-?\\d+)?(:[^\\{{}}]+)?}}", RegexOptions.Compiled);
         }
 
@@ -39,8 +40,7 @@ namespace me.fengyj.CommonLib.Utils {
             });
 
             var fmt = this.regex.Replace(template, evaluator);
-            if (vars.Count == 0) return template;
-            return string.Format(fmt, vars.Select(v => valueGetter(v)).ToArray());
+            return vars.Count == 0 ? template : string.Format(fmt, vars.Select(v => valueGetter(v)).ToArray());
         }
 
         public string GetText(string template, Dictionary<string, object?> vars, bool nullIfVariableNotExists = false) {

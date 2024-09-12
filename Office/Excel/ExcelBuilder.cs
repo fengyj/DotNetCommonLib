@@ -189,7 +189,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             config.Columns.ForEach(c => {
                 if (!c.HasDataGetter)
-                    throw new ArgumentException($"The column {c.ColumnName} doesn't set DataGetter.", nameof(config));
+                    throw new ArgumentException($"The column {c.ColumnName} doesn't set DataGetter.");
             });
 
             if (data == null)
@@ -297,7 +297,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             var endCol = startCol;
 
             // 1. table header
-            var hasHeader = config != null && config.TableStyle.ShowHeader && config.Columns != null && config.Columns.Any(c => c.ColumnName != null);
+            var hasHeader = config != null && config.TableStyle.ShowHeader && config.Columns != null && config.Columns.Exists(c => c.ColumnName != null);
             if (hasHeader && config != null && config.Columns != null) { // check config and columns again to avoid the warning in below code
 
                 endCol = (uint)(startCol - 1 + config.Columns.Count);
@@ -455,7 +455,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
     public class RowBuilder {
 
-        private Func<IEnumerable<CellBuilder>> EmptyCellsBuilder = () => [];
+        private readonly Func<IEnumerable<CellBuilder>> EmptyCellsBuilder = () => [];
         public RowBuilder(SheetBuilder sheetBuilder) {
             this.SheetBuilder = sheetBuilder;
             this.CellBuilderSuppliers = this.EmptyCellsBuilder;

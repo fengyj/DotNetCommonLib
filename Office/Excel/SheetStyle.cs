@@ -41,7 +41,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             RightBorder = new() { Style = BorderStyleValues.Thin },
             BottomBorder = new() { Style = BorderStyleValues.Thin }
         });
-        public static BorderStyle Bottom = new(new() { BottomBorder = new() { Style = BorderStyleValues.Thin } });
+        public static readonly BorderStyle Bottom = new(new() { BottomBorder = new() { Style = BorderStyleValues.Thin } });
 
         public BorderStyle(Border border) {
 
@@ -60,7 +60,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         private static volatile int Seq = -1;
         private static readonly ConcurrentBag<CellStyle> styles = [];
-        private static readonly ConcurrentDictionary<string, CellStyle>? namedStyles = new();
+        private static readonly ConcurrentDictionary<string, CellStyle> namedStyles = new();
 
         #region default styles
 

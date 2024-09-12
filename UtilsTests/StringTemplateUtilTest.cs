@@ -12,9 +12,16 @@ namespace UtilsTests {
 
             Assert.AreEqual(expected, str);
 
-
             str = StringTemplateUtil.Default.GetText(template, [], true);
             expected = $"The $a's value is   , __b's value is , and c5's is       .";
+
+            Assert.AreEqual(expected, str);
+
+            var util = new StringTemplateUtil("[\\$_A-Za-z\\d][\\$_\\.\\w\\s,:]*");
+            template = "The template's value is {0}, and {ab c, :2} {22,2}.";
+            expected = "The template's value is abc, and DEF 123.";
+
+            str = util.GetText(template, new Dictionary<string, object?> { { "0", "abc" }, { "ab c, :2", "DEF" }, { "22,2", "123" } });
 
             Assert.AreEqual(expected, str);
         }
