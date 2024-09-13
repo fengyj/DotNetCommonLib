@@ -63,17 +63,17 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
     public class ColumnTotalFunction {
 
-        private static readonly Regex CustomFormatRegex = new Regex("(?<value>(\\{0(:(?<format>([^\\{\\}]+)))?\\}))", RegexOptions.Compiled);
+        private static readonly Regex CustomFormatRegex = new("(?<value>(\\{0(:(?<format>([^\\{\\}]+)))?\\}))", RegexOptions.Compiled);
 
-        public static readonly ColumnTotalFunction None = new ColumnTotalFunction(0, "None");
-        public static readonly ColumnTotalFunction Average = new ColumnTotalFunction(101, "Average");
-        public static readonly ColumnTotalFunction CountNumbers = new ColumnTotalFunction(102, "Count Numbers");
-        public static readonly ColumnTotalFunction Count = new ColumnTotalFunction(103, "Count");
-        public static readonly ColumnTotalFunction Max = new ColumnTotalFunction(104, "Max");
-        public static readonly ColumnTotalFunction Min = new ColumnTotalFunction(105, "Min");
-        public static readonly ColumnTotalFunction StdDev = new ColumnTotalFunction(107, "StdDev");
-        public static readonly ColumnTotalFunction Sum = new ColumnTotalFunction(109, "Sum");
-        public static readonly ColumnTotalFunction Var = new ColumnTotalFunction(110, "Var");
+        public static readonly ColumnTotalFunction None = new(0, "None");
+        public static readonly ColumnTotalFunction Average = new(101, "Average");
+        public static readonly ColumnTotalFunction CountNumbers = new(102, "Count Numbers");
+        public static readonly ColumnTotalFunction Count = new(103, "Count");
+        public static readonly ColumnTotalFunction Max = new(104, "Max");
+        public static readonly ColumnTotalFunction Min = new(105, "Min");
+        public static readonly ColumnTotalFunction StdDev = new(107, "StdDev");
+        public static readonly ColumnTotalFunction Sum = new(109, "Sum");
+        public static readonly ColumnTotalFunction Var = new(110, "Var");
 
         protected ColumnTotalFunction(uint code, string name) {
             this.FunctionCode = code;
@@ -101,6 +101,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             var valueFormula = $"SUBTOTAL({this.FunctionCode}, {tableName}[{columnName}])";
             if (string.IsNullOrWhiteSpace(this.CustomFormat))
                 this.CustomFormat = $"{this.FunctionName}: {{0}}";
+
+            if (this.FunctionCode == 102 || this.FunctionCode == 103)
+                format = DefaultStyleConfig.Numbering.DefaultInteger.FormatString; // for count functions, the format shouldn't inherited from column's
 
             var matchResult = CustomFormatRegex.Match(this.CustomFormat);
             if (!matchResult.Success) throw new ArgumentException($"The {nameof(this.CustomFormat)} {this.CustomFormat} is not valid.");
@@ -150,7 +153,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
         /// The content of the Excel formula (No leading '=').
         /// </summary>
         /// <example>
-        /// SUBTOTAL(109,[Col A]) / SUBTOTAL(3,[Col B])
+        /// like <code>SUBTOTAL(109,[Col A]) / SUBTOTAL(3,[Col B])</code> or even more complicated one 
+        /// <code>SUMPRODUCT(SUBTOTAL(3, OFFSET(Table1[Col A], ROW(Table1[Col A])-MIN(ROW(Table1[Col A])), 0, 1)), --(Table1[Col A]="Yes"))</code>
         /// </example>
         public string Formula { get; private set; }
 

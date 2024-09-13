@@ -415,6 +415,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     var length = (uint)(val?.Length ?? 2);
                     if (cell.DataType?.Value == CellValues.Date || cell.DataType?.Value == CellValues.Number)
                         length = (uint)(Math.Ceiling(length * 1.3));
+                    if (cell.CellFormula != null)
+                        length = Math.Max(10, Math.Min(100, length) / 4); // the length of the formula could be very long.
                     if (lengths.TryGetValue(colIdx, out var value)) {
                         var l = value;
                         lengths[colIdx] = Math.Max(l, length);

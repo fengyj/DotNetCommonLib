@@ -350,6 +350,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             if (string.IsNullOrWhiteSpace(format)) throw new ArgumentNullException(nameof(format), "The parameter cannot be null nor empty.");
 
+            this.FormatString = format;
+
             var existed = styles.GetOrAdd(format, f => {
                 TooManyStylesException.Check(styles);
                 this.Format = new NumberingFormat { FormatCode = StringValue.FromString(f), NumberFormatId = Interlocked.Increment(ref Seq) };
@@ -364,6 +366,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         private NumberingStyle() {
             this.Format = new NumberingFormat() { NumberFormatId = 0 };
+            this.FormatString = string.Empty;
             //styles.TryAdd(string.Empty, this); // DO NOT add it to the list.
         }
 
@@ -371,6 +374,10 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public uint StyleId => this.Format.NumberFormatId;
 #pragma warning restore CS8604 // Possible null reference argument.
         public NumberingFormat Format { get; private set; }
+        /// <summary>
+        /// The format
+        /// </summary>
+        public string FormatString { get; private set; }
 
         public static IEnumerable<NumberingStyle> GetStyles() => styles.Values.OrderBy(s => s.StyleId).ToList();
     }
