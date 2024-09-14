@@ -71,9 +71,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
         public static readonly ColumnTotalFunction Count = new(103, "Count");
         public static readonly ColumnTotalFunction Max = new(104, "Max");
         public static readonly ColumnTotalFunction Min = new(105, "Min");
+        public static readonly ColumnTotalFunction Product = new(106, "Product");
         public static readonly ColumnTotalFunction StdDev = new(107, "StdDev");
+        public static readonly ColumnTotalFunction StdDevP = new(108, "StdDevP");
         public static readonly ColumnTotalFunction Sum = new(109, "Sum");
         public static readonly ColumnTotalFunction Var = new(110, "Var");
+        public static readonly ColumnTotalFunction VarP = new(111, "VarP");
 
         protected ColumnTotalFunction(uint code, string name) {
             this.FunctionCode = code;
@@ -87,6 +90,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
         /// </summary>
         /// <example>Total Price: {0:$0.00}</example>
         public virtual string? CustomFormat { get; private set; }
+        public virtual bool IncludeHiddenRows { get; private set; } = false;
 
         /// <summary>
         /// Get the formula for generating Excel
@@ -102,7 +106,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             if (string.IsNullOrWhiteSpace(this.CustomFormat))
                 this.CustomFormat = $"{this.FunctionName}: {{0}}";
 
-            if (this.FunctionCode == 102 || this.FunctionCode == 103)
+            if (this.FunctionCode % 100 == 2 || this.FunctionCode % 100 == 3)
                 format = DefaultStyleConfig.Numbering.DefaultInteger.FormatString; // for count functions, the format shouldn't inherited from column's
 
             var matchResult = CustomFormatRegex.Match(this.CustomFormat);
@@ -130,7 +134,29 @@ namespace me.fengyj.CommonLib.Office.Excel {
         /// <returns></returns>
         public virtual ColumnTotalFunction WithCustomFormat(string format) {
             var func = new ColumnTotalFunction(this.FunctionCode, this.FunctionName) {
-                CustomFormat = format
+                CustomFormat = format,
+                IncludeHiddenRows = this.IncludeHiddenRows
+            };
+            return func;
+        }
+
+        /// <summary>
+        /// Set the formula using the hidden rows or now.
+        /// </summary>
+        /// <param name="hiddenRows"></param>
+        /// <returns></returns>
+        public virtual ColumnTotalFunction WithHiddenRows(bool hiddenRows) {
+
+            if (this.FunctionCode == 0) return this;
+
+            var code = this.FunctionCode;
+            if (code < 100 && hiddenRows) code += 100;
+            else if (code > 100 && !hiddenRows) code -= 100;
+            else return this;
+
+            var func = new ColumnTotalFunction(code, this.FunctionName) {
+                CustomFormat = this.CustomFormat,
+                IncludeHiddenRows = !hiddenRows
             };
             return func;
         }
@@ -176,6 +202,10 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public override string? CustomFormat => throw new NotSupportedException();
 
+        public override bool IncludeHiddenRows => throw new NotSupportedException();
+
         public override ColumnTotalFunction WithCustomFormat(string format) => throw new NotSupportedException();
+
+        public override ColumnTotalFunction WithHiddenRows(bool hiddenRows) => throw new NotSupportedException();
     }
 }
