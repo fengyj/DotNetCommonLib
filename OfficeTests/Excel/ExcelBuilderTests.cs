@@ -108,7 +108,7 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
                 new TableConfig<object?[]>([
                     new TableColumnConfig<object?[], object>("Col_1", dataGetter: i => i[0]),
                     new TableColumnConfig<object?[], object>("Col_2", dataGetter: i => i[1], style: CellStyle.Integer_Default, totalFunction: ColumnTotalFunction.Average.WithCustomFormat("Avg Price: {0:$###,##0.00}")),
-                    new TableColumnConfig<object?[], object>("Col_3", dataGetter: i => i[2], style: CellStyle.DateTime_Default, totalFunction: ColumnTotalFunction.Max)],
+                    new TableColumnConfig<object?[], object>("Col_3", dataGetter: i => i[2], style: CellStyle.DateTime_Default, totalFunction: ColumnTotalFunction.Max.WithHiddenRows(false))],
                 style: new TableStyle()));
 
             sheetBuilder.AddRow("Different theme:", rowOffset: 2, style: CellStyle.Error);
