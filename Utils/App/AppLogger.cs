@@ -59,7 +59,7 @@ namespace me.fengyj.CommonLib.Utils.App {
                 ConsoleExt.WriteLine("{0} [{1}] {2}", colorScheme, null, GetNow(), logLevel.PadRight(5), msg);
                 return;
             }
-            if (args != null && args.Where(a => !string.IsNullOrEmpty(a?.ToString())).Count() > 0) {
+            if (args != null && args.Where(a => !string.IsNullOrEmpty(a?.ToString())).Any()) {
 
                 var argsInStr = args.Where(a => a != null).Select(a => a.ToString()).Select(selector: s => s == null ? null : Regex.Escape(s)).ToArray();
                 var regex = new Regex($"({string.Join('|', argsInStr)})");

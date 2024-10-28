@@ -100,6 +100,11 @@ namespace me.fengyj.CommonLib.Utils {
         public static string InlineStyle_Color_Blue = "color:#5B9BD5";
         public static string InlineStyle_Table_Row_Strips = "background-color:#EAEAEA";
 
+        public static string InlineStyle_Bold = "font-weight: Bold";
+        public static string InlineStyle_Italic = "font-style: italic";
+        public static string InlineStyle_Underline = "text-decoration: underline";
+        public static string InlineStyle_Line_Through = "text-decoration: line-through";
+
 
         public static string StyleSheet = @"
 body {background:#fefefe;font-family:Verdana,sans-serif;font-size:11.0pt;color:#404040}
@@ -110,6 +115,10 @@ body {background:#fefefe;font-family:Verdana,sans-serif;font-size:11.0pt;color:#
 .table {border-collapse:collapse}
 .table_header {background-color:#C0C0C0}
 ";
+
+        public static string? GetStyle(params string[] styles) {
+            return styles == null ? null : string.Join(";", styles);
+        }
     }
 
     public class ListBuilder : IContentBuilder {

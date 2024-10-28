@@ -284,6 +284,14 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     }
                 };
             }
+
+            protected void SetErrorMsgAndWithDefaultValue<V>(Record rec, string errMsg, V defaultValue, Action<Record, V> setter) {
+                setter(rec, defaultValue);
+                if (defaultValue == null)
+                    rec.AddCellError(this.colName, errMsg);
+                else
+                    rec.AddCellError(this.colName, $"[Warning] {errMsg} Set with default value {defaultValue}.");
+            }
         }
 
         public class TextDeserializer : DataDeserializer {
@@ -421,12 +429,13 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                 if (cell.DataType?.Value == CellValues.Date) {
 
-                    if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
+                    var str = cell.CellValue?.InnerText;
+                    if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
-                    else if (DateTime.TryParse(cell.CellValue?.InnerText, out var date))
+                    else if (DateTime.TryParse(str, out var date))
                         this.ValueSetter(rec, date);
                     else
-                        rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to a DateTime value.");
+                        this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a DateTime value.", this.DefaultValue, this.ValueSetter);
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
@@ -439,7 +448,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     else if (string.IsNullOrEmpty(str))
                         this.ValueSetter(rec, this.DefaultValue);
                     else
-                        rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a DateTime value.");
+                        this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a DateTime value.", this.DefaultValue, this.ValueSetter);
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
@@ -450,7 +459,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     else {
                         var val = this.Parser(str);
                         if (val.HasValue) this.ValueSetter(rec, val.Value);
-                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a DateTime value.");
+                        else this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a DateTime value.", this.DefaultValue, this.ValueSetter);
                     }
                 }
             }
@@ -496,12 +505,13 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                 if (cell.DataType?.Value == CellValues.Date) {
 
-                    if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
+                    var str = cell.CellValue?.InnerText;
+                    if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
-                    else if (DateTime.TryParse(cell.CellValue?.InnerText, out var date))
+                    else if (DateTime.TryParse(str, out var date))
                         this.ValueSetter(rec, date.TimeOfDay);
                     else
-                        rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to TimeSpan value.");
+                        this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to TimeSpan value.", this.DefaultValue, this.ValueSetter);
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
@@ -513,7 +523,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     else {
                         var val = this.Parser(str);
                         if (val.HasValue) this.ValueSetter(rec, val.Value);
-                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a TimeSpan value.");
+                        else this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a TimeSpan value.", this.DefaultValue, this.ValueSetter);
                     }
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
@@ -525,7 +535,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     else {
                         var val = this.Parser(str);
                         if (val.HasValue) this.ValueSetter(rec, val.Value);
-                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a TimeSpan value.");
+                        else this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a TimeSpan value.", this.DefaultValue, this.ValueSetter);
                     }
                 }
             }
@@ -571,12 +581,13 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                 if (cell.DataType?.Value == CellValues.Boolean) {
 
-                    if (string.IsNullOrWhiteSpace(cell.CellValue?.InnerText))
+                    var str = cell.CellValue?.InnerText;
+                    if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
-                    else if (bool.TryParse(cell.CellValue?.InnerText, out var b))
+                    else if (bool.TryParse(str, out var b))
                         this.ValueSetter(rec, b);
                     else
-                        rec.AddCellError(this.ColumnName, $"The cell value ({cell.CellValue?.InnerText}) cannot be converted to Boolean value.");
+                        this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to Boolean value.", this.DefaultValue, this.ValueSetter);
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
@@ -588,7 +599,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     else {
                         var val = this.Parser(str);
                         if (val.HasValue) this.ValueSetter(rec, val.Value);
-                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a Boolean value.");
+                        else this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a Boolean value.", this.DefaultValue, this.ValueSetter);
                     }
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
@@ -600,29 +611,29 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     else {
                         var val = this.Parser(str);
                         if (val.HasValue) this.ValueSetter(rec, val.Value);
-                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a Boolean value.");
+                        else this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a Boolean value.", this.DefaultValue, this.ValueSetter);
                     }
                 }
             }
         }
 
-        public class NumberDeserializer<V> : DataDeserializer {
+        public class NumberDeserializer<V> : DataDeserializer where V : struct {
 
             private static readonly Func<string?, V?> defaultParser;
 
             static NumberDeserializer() {
 
-                if (typeof(V) == typeof(byte)) defaultParser = str => byte.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(sbyte)) defaultParser = str => sbyte.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(short)) defaultParser = str => short.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(ushort)) defaultParser = str => ushort.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(int)) defaultParser = str => int.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(uint)) defaultParser = str => uint.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(long)) defaultParser = str => long.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(ulong)) defaultParser = str => ulong.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(float)) defaultParser = str => float.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(double)) defaultParser = str => double.TryParse(str, out var b) && b is V v ? v : default(V);
-                else if (typeof(V) == typeof(decimal)) defaultParser = str => decimal.TryParse(str, out var b) && b is V v ? v : default(V);
+                if (typeof(V) == typeof(byte)) defaultParser = str => byte.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(sbyte)) defaultParser = str => sbyte.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(short)) defaultParser = str => short.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(ushort)) defaultParser = str => ushort.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(int)) defaultParser = str => int.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(uint)) defaultParser = str => uint.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(long)) defaultParser = str => long.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(ulong)) defaultParser = str => ulong.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(float)) defaultParser = str => float.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(double)) defaultParser = str => double.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(decimal)) defaultParser = str => decimal.TryParse(str, out var b) && b is V v ? v : null;
                 else throw new ArgumentException($"The generic type argument type {typeof(V).Name} is not supported.");
             }
 
@@ -645,7 +656,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 uint? colIdx = null,
                 string? colName = null,
                 string? tblColName = null,
-                V? defaultValue = default) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
+                V? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
 
                 this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.Parser = parser;
@@ -675,13 +686,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
                         this.ValueSetter(rec, this.DefaultValue);
                     }
                     else if (this.Parser != null) {
-
                         val = this.Parser(str);
                         if (val != null) this.ValueSetter(rec, val);
-                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.");
+                        else this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.", this.DefaultValue, this.ValueSetter);
                     }
                     else {
-                        rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.");
+                        this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.", this.DefaultValue, this.ValueSetter);
                     }
                 }
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
@@ -692,10 +702,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                         this.ValueSetter(rec, this.DefaultValue);
                     }
                     else {
-
                         var val = (this.Parser ?? defaultParser)(str);
                         if (val != null) this.ValueSetter(rec, val);
-                        else rec.AddCellError(this.ColumnName, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.");
+                        else this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.", this.DefaultValue, this.ValueSetter);
                     }
                 }
             }
@@ -751,7 +760,26 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
             public bool HasErrors {
                 get {
-                    return (this.CellErrors != null && this.CellErrors.Count > 0) || this.Error != null;
+                    return (this.CellErrors != null && this.CellErrors.Count > 0 && this.CellErrors.Values.Any(i => !i.StartsWith("Warning:"))
+                    || (this.Error != null && !this.Error.StartsWith("[Warning]")));
+                }
+            }
+
+            public bool HasWarnings {
+                get {
+                    return (this.CellErrors != null && this.CellErrors.Count > 0 && this.CellErrors.Values.Any(i => i.StartsWith("Warning:"))
+                    || (this.Error != null && this.Error.StartsWith("[Warning]")));
+                }
+            }
+
+            public string? GetErrorMessage() {
+                if (this.HasErrors || this.HasWarnings) {
+                    var error = this.Error ?? string.Empty;
+                    error = error + " " + string.Join("; ", this.CellErrors?.Select(i => $"{i.Key}: {i.Value}") ?? Array.Empty<string>());
+                    return error.Trim();
+                }
+                else {
+                    return null;
                 }
             }
 
