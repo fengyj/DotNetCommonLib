@@ -7,6 +7,6 @@
             this.Errors = errors;
         }
 
-        public override string ToString() => $"Validation Failed. Errors: {string.Join(" ", this.Errors)}";
+        public override string ToString() => $"Validation Failed. Errors: {string.Join(" ", this.Errors ?? [])}";
     }
 }

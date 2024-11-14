@@ -28,12 +28,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             var sheetPart = this.doc.WorkbookPart?.GetPartById(s.Id?.Value ?? "");
             if (sheetPart == null) yield break;
 
-            // TODO: get col index if it's not provided
-
 #pragma warning disable CS8629 // Nullable value type may be null.
             var dict = config.Deserializers.Where(i => i.ColumnIndex.HasValue).GroupBy(i => i.ColumnIndex.Value).ToDictionary(i => i.Key, i => i.ToList());
 #pragma warning restore CS8629 // Nullable value type may be null.
-            var isReadViaTableColumns = config.Deserializers.Count != dict.Count; // if not equal, means there are some deserializers don't provide the columnIndex.
 
             var rec = new Record();
 
@@ -51,17 +48,16 @@ namespace me.fengyj.CommonLib.Office.Excel {
                         allCellsInRowEmpty = true;
                         var rowId = GetRowId(reader);
                         if (rowId != null)
-                            for (var i = currentRowIdx + 1; i < rowId; i++)
+                            for (var i = currentRowIdx + 1; i < rowId.Value; i++)
                                 currentRowIdx++;
 
                         currentRowIdx++;
                         currentColIdx = 0; // reset col idx, because it's a new row now.
-                        if (!isReadViaTableColumns)
-                            rec = (rec ?? new Record()).GetReusedOrCreateNew(currentRowIdx, reused, () => config.RecordBuilder(currentRowIdx));
+                        rec = (rec ?? new Record()).GetReusedOrCreateNew(currentRowIdx, reused, () => config.RecordBuilder(currentRowIdx));
                     }
                     else {
                         // check if needs to skip the header row
-                        var rowCanReturn = isReadViaTableColumns ? (currentRowIdx > config.Area.IndexOfRowBegin) : (currentRowIdx >= config.Area.IndexOfRowBegin);
+                        var rowCanReturn = config.IsFirstLineHeader ? (currentRowIdx > config.Area.IndexOfRowBegin) : (currentRowIdx >= config.Area.IndexOfRowBegin);
                         if (rowCanReturn && currentColIdx >= config.Area.IndexOfColumnBegin)
                             if (rec != null && (!config.SkipEmptyRows || !allCellsInRowEmpty))
                                 yield return rec;
@@ -102,7 +98,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                     if (currentRowIdx < config.Area.IndexOfRowBegin || currentColIdx < config.Area.IndexOfColumnBegin) continue;
                     if (config.Area.IndexOfColumnEnd.HasValue && currentColIdx > config.Area.IndexOfColumnEnd.Value) continue;
 
-                    if (isReadViaTableColumns && currentRowIdx == config.Area.IndexOfRowBegin) {
+                    if (config.IsFirstLineHeader && currentRowIdx == config.Area.IndexOfRowBegin) {
                         var name = cell.CellValue?.InnerText;
                         var matched = config.Deserializers.Where(d => d.ColumnName == name && !d.ColumnIndex.HasValue);
                         foreach (var d in matched) {
@@ -119,12 +115,28 @@ namespace me.fengyj.CommonLib.Office.Excel {
                         config.DefaultSetter(rec.Data, currentColIdx, this.GetStringCellValue(cell));
                     }
 
-                    if (allCellsInRowEmpty && !string.IsNullOrWhiteSpace(this.GetStringCellValue(cell)))
+                    if (allCellsInRowEmpty && !string.IsNullOrWhiteSpace(this.GetCellValue(cell)))
                         allCellsInRowEmpty = false;
                 }
             }
 
             config.Area.IndexOfRowEnd = currentRowIdx;
+        }
+
+        public string? GetCellValue(Cell cell) {
+
+            if (cell.DataType?.Value == CellValues.SharedString) {
+                return int.TryParse(cell.CellValue?.InnerText, out var sid) ? this.GetSharedString(sid) : null;
+            }
+            else if (cell.DataType?.Value == CellValues.InlineString) {
+                return cell.InlineString?.InnerText;
+            }
+            else if (cell == EmptyCell || cell.CellValue == null || cell.CellValue.InnerText == null) {
+                return null;
+            }
+            else {
+                return cell.CellValue.InnerText;
+            }
         }
 
         public string? GetStringCellValue(Cell cell) {
@@ -135,8 +147,14 @@ namespace me.fengyj.CommonLib.Office.Excel {
             else if (cell.DataType?.Value == CellValues.InlineString) {
                 return cell.InlineString?.InnerText;
             }
+            else if (cell == EmptyCell || cell.CellValue == null || cell.CellValue.InnerText == null) {
+                return null;
+            }
+            else if (double.TryParse(cell.CellValue.InnerText, out var v)) {
+                return Convert.ToDecimal(v).ToString();
+            }
             else {
-                return cell == EmptyCell ? null : cell.CellValue?.InnerText;
+                return cell.CellValue.InnerText;
             }
         }
 
@@ -195,20 +213,27 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// 
             /// </summary>
             /// <param name="sheetNo">Which sheet contains the data to read. Starts from 1.</param>
-            /// <param name="area">Define the range of the cells to read. the end or row and/or the end of column can be omitted.</param>
+            /// <param name="area">
+            /// Define the range of the cells to read. the end or row and/or the end of column can be omitted.
+            /// </param>
             /// <param name="recBuilder">The builder function to create an object resprents the row in the sheet. The arg is the current row index.</param>
             /// <param name="deserializers">Define the functions how to convert cell value to the values in the object.</param>
             /// <param name="defaultSetter">If necessary, when deserializers don't contain the function to handle the cell value for a particular column, can set a default one.
             /// The second arg is the current col index.
             /// </param>
             /// <param name="skipEmptyRows">Skip the empty rows (all the cells are empty) or not. If yes, the row won't yield a T object.</param>
+            /// <param name="isFirstLineHeader">
+            /// Indicate if needs to skip the first record is table header.
+            /// If any deserializer only specifics the table column name (the parameter tblColName), the first line in the area has to be table header.
+            /// </param>
             public Config(
                 uint sheetNo,
                 DataArea area,
                 Func<uint, T> recBuilder,
                 List<DataDeserializer>? deserializers = null,
                 Action<T, uint, string?>? defaultSetter = null,
-                bool skipEmptyRows = true) {
+                bool skipEmptyRows = true,
+                bool isFirstLineHeader = false) {
 
                 this.SheetNo = sheetNo;
                 this.Area = area;
@@ -216,6 +241,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 this.RecordBuilder = recBuilder;
                 this.DefaultSetter = defaultSetter;
                 this.SkipEmptyRows = skipEmptyRows;
+                this.IsFirstLineHeader = isFirstLineHeader
+                    || (deserializers?.Any(i => i.TableColumnName != null && i.ColumnIndex == null && i.ColumnName == null) ?? false);
             }
 
             /// <summary>
@@ -227,6 +254,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public Func<uint, T> RecordBuilder { get; private set; }
             public Action<T, uint, string?>? DefaultSetter { get; private set; }
             public bool SkipEmptyRows { get; private set; }
+            public bool IsFirstLineHeader { get; private set; }
         }
 
         public abstract class DataDeserializer {
@@ -439,7 +467,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
-                    var str = reader.GetStringCellValue(cell);
+                    var str = reader.GetCellValue(cell);
                     var val = this.Parser(str);
                     if (val.HasValue)
                         this.ValueSetter(rec, val.Value);
@@ -453,7 +481,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    var str = reader.GetStringCellValue(cell);
+                    var str = reader.GetCellValue(cell);
                     if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
                     else {
@@ -515,7 +543,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
-                    var str = reader.GetStringCellValue(cell);
+                    var str = reader.GetCellValue(cell);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
                         this.ValueSetter(rec, DateTime.FromOADate(d).TimeOfDay);
                     else if (string.IsNullOrEmpty(str))
@@ -529,7 +557,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    var str = reader.GetStringCellValue(cell);
+                    var str = reader.GetCellValue(cell);
                     if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
                     else {
@@ -591,7 +619,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
-                    var str = reader.GetStringCellValue(cell);
+                    var str = reader.GetCellValue(cell);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
                         this.ValueSetter(rec, d != 0);
                     else if (string.IsNullOrEmpty(str))
@@ -605,7 +633,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    var str = reader.GetStringCellValue(cell);
+                    var str = reader.GetCellValue(cell);
                     if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
                     else {
@@ -619,21 +647,35 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
         public class NumberDeserializer<V> : DataDeserializer where V : struct {
 
-            private static readonly Func<string?, V?> defaultParser;
+            private static readonly Func<string?, V?> stringParser;
+            private static readonly Func<string?, V?> numericParser;
 
             static NumberDeserializer() {
 
-                if (typeof(V) == typeof(byte)) defaultParser = str => byte.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(sbyte)) defaultParser = str => sbyte.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(short)) defaultParser = str => short.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(ushort)) defaultParser = str => ushort.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(int)) defaultParser = str => int.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(uint)) defaultParser = str => uint.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(long)) defaultParser = str => long.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(ulong)) defaultParser = str => ulong.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(float)) defaultParser = str => float.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(double)) defaultParser = str => double.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(decimal)) defaultParser = str => decimal.TryParse(str, out var b) && b is V v ? v : null;
+                if (typeof(V) == typeof(byte)) stringParser = str => byte.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(sbyte)) stringParser = str => sbyte.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(short)) stringParser = str => short.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(ushort)) stringParser = str => ushort.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(int)) stringParser = str => int.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(uint)) stringParser = str => uint.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(long)) stringParser = str => long.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(ulong)) stringParser = str => ulong.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(float)) stringParser = str => float.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(double)) stringParser = str => double.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(decimal)) stringParser = str => decimal.TryParse(str, out var b) && b is V v ? v : null;
+                else throw new ArgumentException($"The generic type argument type {typeof(V).Name} is not supported.");
+
+                if (typeof(V) == typeof(byte)) numericParser = str => double.TryParse(str, out var b) && Convert.ToByte(b) is V v ? v : null;
+                else if (typeof(V) == typeof(sbyte)) numericParser = str => double.TryParse(str, out var b) && Convert.ToSByte(b) is V v ? v : null;
+                else if (typeof(V) == typeof(short)) numericParser = str => double.TryParse(str, out var b) && Convert.ToInt16(b) is V v ? v : null;
+                else if (typeof(V) == typeof(ushort)) numericParser = str => double.TryParse(str, out var b) && Convert.ToUInt16(b) is V v ? v : null;
+                else if (typeof(V) == typeof(int)) numericParser = str => double.TryParse(str, out var b) && Convert.ToInt32(b) is V v ? v : null;
+                else if (typeof(V) == typeof(uint)) numericParser = str => double.TryParse(str, out var b) && Convert.ToUInt32(b) is V v ? v : null;
+                else if (typeof(V) == typeof(long)) numericParser = str => double.TryParse(str, out var b) && Convert.ToInt64(b) is V v ? v : null;
+                else if (typeof(V) == typeof(ulong)) numericParser = str => double.TryParse(str, out var b) && Convert.ToUInt64(b) is V v ? v : null;
+                else if (typeof(V) == typeof(float)) numericParser = str => double.TryParse(str, out var b) && Convert.ToSingle(b) is V v ? v : null;
+                else if (typeof(V) == typeof(double)) numericParser = str => double.TryParse(str, out var b) && b is V v ? v : null;
+                else if (typeof(V) == typeof(decimal)) numericParser = str => double.TryParse(str, out var b) && Convert.ToDecimal(b) is V v ? v : null;
                 else throw new ArgumentException($"The generic type argument type {typeof(V).Name} is not supported.");
             }
 
@@ -676,8 +718,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                 if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
-                    var str = reader.GetStringCellValue(cell);
-                    var val = defaultParser(cell.CellValue?.InnerText);
+                    var str = reader.GetCellValue(cell);
+                    var val = numericParser(cell.CellValue?.InnerText);
 
                     if (val != null) {
                         this.ValueSetter(rec, val);
@@ -697,12 +739,12 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    var str = reader.GetStringCellValue(cell);
+                    var str = reader.GetCellValue(cell);
                     if (string.IsNullOrWhiteSpace(str)) {
                         this.ValueSetter(rec, this.DefaultValue);
                     }
                     else {
-                        var val = (this.Parser ?? defaultParser)(str);
+                        var val = (this.Parser ?? stringParser)(str);
                         if (val != null) this.ValueSetter(rec, val);
                         else this.SetErrorMsgAndWithDefaultValue(rec, $"The cell value ({str}) cannot be converted to a {typeof(V).Name} value.", this.DefaultValue, this.ValueSetter);
                     }
@@ -775,7 +817,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public string? GetErrorMessage() {
                 if (this.HasErrors || this.HasWarnings) {
                     var error = this.Error ?? string.Empty;
-                    error = error + " " + string.Join("; ", this.CellErrors?.Select(i => $"{i.Key}: {i.Value}") ?? Array.Empty<string>());
+                    error = error + " " + string.Join("; ", this.CellErrors?.Select(i => $"{i.Key}: {i.Value}") ?? []);
                     return error.Trim();
                 }
                 else {

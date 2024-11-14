@@ -11,23 +11,39 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
             using var reader = new ExcelDataReader<NumberTable>(Path.Combine("TestData", "ManualCreated.xlsx"));
             var cfg = new ExcelDataReader<NumberTable>.Config(
                 1,
-                new ExcelDataReader<NumberTable>.DataArea(2, 1, 8, 3),
+                new ExcelDataReader<NumberTable>.DataArea(2, 1, 10, 3),
                 c => new NumberTable(),
                 [
                     new ExcelDataReader<NumberTable>.TextDeserializer((o, v) => o.Comment = v, colIdx: 1),
                         new ExcelDataReader<NumberTable>.NumberDeserializer<double>(
-                            (o, v) => o.ValueToCheck = v,
+                            (o, v) => o.ValueToCheck_Double = v,
                             colIdx: 2),
                         new ExcelDataReader<NumberTable>.NumberDeserializer<double>(
-                            (o, v) => o.ExpectedValue = v,
+                            (o, v) => o.ExpectedValue_Double = v,
+                            colIdx: 3),
+                        new ExcelDataReader<NumberTable>.NumberDeserializer<decimal>(
+                            (o, v) => o.ValueToCheck_Decimal = v,
+                            colIdx: 2),
+                        new ExcelDataReader<NumberTable>.NumberDeserializer<decimal>(
+                            (o, v) => o.ExpectedValue_Decimal = v,
+                            colIdx: 3),
+                        new ExcelDataReader<NumberTable>.TextDeserializer(
+                            (o, v) => o.ValueToCheck_String = v,
+                            colIdx: 2),
+                        new ExcelDataReader<NumberTable>.TextDeserializer(
+                            (o, v) => o.ExpectedValue_String = v,
                             colIdx: 3)
                 ]);
 
             var data = reader.Read(cfg).Select(i => i.Data).ToList();
-            Assert.AreEqual(6, data.Count);
+            Assert.AreEqual(9, data.Count);
             foreach (var item in data) {
                 Assert.IsNotNull(item);
-                Assert.AreEqual(item.ExpectedValue, item.ValueToCheck);
+                Assert.IsTrue(
+                    item.ExpectedValue_Double.HasValue && item.ExpectedValue_Double.Value.CompareTo(item.ValueToCheck_Double) < 0.000000000001,
+                    $"Expected: {item.ExpectedValue_Double}, Actual: {item.ValueToCheck_Double}");
+                Assert.AreEqual(item.ExpectedValue_Decimal, item.ValueToCheck_Decimal);
+                Assert.AreEqual(item.ExpectedValue_String, item.ValueToCheck_String);
             }
         }
 
@@ -84,8 +100,12 @@ namespace me.fengyj.CommonLib.OfficeTests.Excel {
 
         public class NumberTable {
             public string? Comment { get; set; }
-            public double? ValueToCheck { get; set; }
-            public double? ExpectedValue { get; set; }
+            public double? ValueToCheck_Double { get; set; }
+            public double? ExpectedValue_Double { get; set; }
+            public decimal? ValueToCheck_Decimal { get; set; }
+            public decimal? ExpectedValue_Decimal { get; set; }
+            public string? ValueToCheck_String { get; set; }
+            public string? ExpectedValue_String { get; set; }
         }
     }
 }
