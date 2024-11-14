@@ -152,7 +152,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             else if (cell == EmptyCell || cell.CellValue == null || cell.CellValue.InnerText == null) {
                 return null;
             }
-            else if (double.TryParse(cell.CellValue.InnerText, out var v)) {
+            else if (double.TryParse(cell.CellValue.InnerText, out var v) && double.IsFinite(v)) {
                 return Convert.ToDecimal(v).ToString();
             }
             else {
@@ -665,17 +665,17 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (typeof(V) == typeof(decimal)) stringParser = str => decimal.TryParse(str, out var b) && b is V v ? v : null;
                 else throw new ArgumentException($"The generic type argument type {typeof(V).Name} is not supported.");
 
-                if (typeof(V) == typeof(byte)) numericParser = str => double.TryParse(str, out var b) && Convert.ToByte(b) is V v ? v : null;
-                else if (typeof(V) == typeof(sbyte)) numericParser = str => double.TryParse(str, out var b) && Convert.ToSByte(b) is V v ? v : null;
-                else if (typeof(V) == typeof(short)) numericParser = str => double.TryParse(str, out var b) && Convert.ToInt16(b) is V v ? v : null;
-                else if (typeof(V) == typeof(ushort)) numericParser = str => double.TryParse(str, out var b) && Convert.ToUInt16(b) is V v ? v : null;
-                else if (typeof(V) == typeof(int)) numericParser = str => double.TryParse(str, out var b) && Convert.ToInt32(b) is V v ? v : null;
-                else if (typeof(V) == typeof(uint)) numericParser = str => double.TryParse(str, out var b) && Convert.ToUInt32(b) is V v ? v : null;
-                else if (typeof(V) == typeof(long)) numericParser = str => double.TryParse(str, out var b) && Convert.ToInt64(b) is V v ? v : null;
-                else if (typeof(V) == typeof(ulong)) numericParser = str => double.TryParse(str, out var b) && Convert.ToUInt64(b) is V v ? v : null;
-                else if (typeof(V) == typeof(float)) numericParser = str => double.TryParse(str, out var b) && Convert.ToSingle(b) is V v ? v : null;
+                if (typeof(V) == typeof(byte)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToByte(b) is V v ? v : null;
+                else if (typeof(V) == typeof(sbyte)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToSByte(b) is V v ? v : null;
+                else if (typeof(V) == typeof(short)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToInt16(b) is V v ? v : null;
+                else if (typeof(V) == typeof(ushort)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToUInt16(b) is V v ? v : null;
+                else if (typeof(V) == typeof(int)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToInt32(b) is V v ? v : null;
+                else if (typeof(V) == typeof(uint)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToUInt32(b) is V v ? v : null;
+                else if (typeof(V) == typeof(long)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToInt64(b) is V v ? v : null;
+                else if (typeof(V) == typeof(ulong)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToUInt64(b) is V v ? v : null;
+                else if (typeof(V) == typeof(float)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToSingle(b) is V v ? v : null;
                 else if (typeof(V) == typeof(double)) numericParser = str => double.TryParse(str, out var b) && b is V v ? v : null;
-                else if (typeof(V) == typeof(decimal)) numericParser = str => double.TryParse(str, out var b) && Convert.ToDecimal(b) is V v ? v : null;
+                else if (typeof(V) == typeof(decimal)) numericParser = str => double.TryParse(str, out var b) && double.IsFinite(b) && Convert.ToDecimal(b) is V v ? v : null;
                 else throw new ArgumentException($"The generic type argument type {typeof(V).Name} is not supported.");
             }
 
