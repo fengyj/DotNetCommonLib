@@ -53,7 +53,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                         currentRowIdx++;
                         currentColIdx = 0; // reset col idx, because it's a new row now.
-                        rec = (rec ?? new Record()).GetReusedOrCreateNew(currentRowIdx, reused, () => config.RecordBuilder(currentRowIdx));
+                        var rowCanReturn = config.IsFirstLineHeader ? (currentRowIdx > config.Area.IndexOfRowBegin) : (currentRowIdx >= config.Area.IndexOfRowBegin);
+                        if (rowCanReturn)
+                            rec = (rec ?? new Record()).GetReusedOrCreateNew(currentRowIdx, reused, () => config.RecordBuilder(currentRowIdx));
                     }
                     else {
                         // check if needs to skip the header row
@@ -213,9 +215,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// 
             /// </summary>
             /// <param name="sheetNo">Which sheet contains the data to read. Starts from 1.</param>
-            /// <param name="area">
-            /// Define the range of the cells to read. the end or row and/or the end of column can be omitted.
-            /// </param>
+            /// <param name="area"> Define the range of the cells to read. the end or row and/or the end of column can be omitted.</param>
             /// <param name="recBuilder">The builder function to create an object resprents the row in the sheet. The arg is the current row index.</param>
             /// <param name="deserializers">Define the functions how to convert cell value to the values in the object.</param>
             /// <param name="defaultSetter">If necessary, when deserializers don't contain the function to handle the cell value for a particular column, can set a default one.
