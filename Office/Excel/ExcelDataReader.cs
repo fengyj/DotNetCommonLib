@@ -544,7 +544,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
                     var str = reader.GetCellValue(cell);
-                    if (double.TryParse(cell.CellValue?.InnerText, out var d))
+                    if (double.TryParse(cell.CellValue?.InnerText, out var d) && (d < 2958466.0 && d > -657435.0))
                         this.ValueSetter(rec, DateTime.FromOADate(d).TimeOfDay);
                     else if (string.IsNullOrEmpty(str))
                         this.ValueSetter(rec, this.DefaultValue);
@@ -621,7 +621,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                     var str = reader.GetCellValue(cell);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
-                        this.ValueSetter(rec, d != 0);
+                        this.ValueSetter(rec, double.IsFinite(d) && d != 0);
                     else if (string.IsNullOrEmpty(str))
                         this.ValueSetter(rec, this.DefaultValue);
                     else {
