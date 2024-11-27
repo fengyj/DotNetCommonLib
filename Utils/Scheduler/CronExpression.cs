@@ -267,6 +267,7 @@ namespace me.fengyj.CommonLib.Utils.Scheduler {
         /// │ │ │ │ │ │ │
         /// * * * * * * * command to execute
         ///
+        /// Quartz uses different day of week definition. 1 - 7 (Sunday to Saturday). To avoid the issue, suggests to use SUN, MON, ... instead of numbers.
         ///
         /// </remarks>
         public CronExpression(string cronExpression) {

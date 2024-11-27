@@ -33,6 +33,14 @@ namespace UtilsTests.Scheduler {
             cronExpression = new CronExpression("0 0 0 1W * ? 2044,2049");
             cal = new DateTime(2044, 1, 1).ToUniversalTime();
             Assert.IsTrue(cronExpression.IsSatisfiedBy(cal));
+
+            cronExpression = CronExpressionUtils.AtHourAndMinuteOnGivenDaysOfWeek(9, 30, DayOfWeek.Monday, DayOfWeek.Sunday);
+            cal = new DateTime(2024, 11, 25, 9, 30, 0).ToUniversalTime();
+            Assert.IsTrue(cronExpression.IsSatisfiedBy(cal));
+            cal = cronExpression.GetNextValidTimeAfter(cal.ToUniversalTime())!.Value.LocalDateTime;
+            Assert.AreEqual(DayOfWeek.Sunday, cal.DayOfWeek);
+            cal = cronExpression.GetNextValidTimeAfter(cal.ToUniversalTime())!.Value.LocalDateTime;
+            Assert.AreEqual(DayOfWeek.Monday, cal.DayOfWeek);
         }
 
         [TestMethod]

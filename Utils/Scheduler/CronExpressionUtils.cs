@@ -2,6 +2,9 @@
     public static class CronExpressionUtils {
 
         public static readonly DayOfWeek[] DefaultWeekends = { DayOfWeek.Saturday, DayOfWeek.Sunday };
+        private static readonly Dictionary<DayOfWeek, string> DayOfWeeks = Enumerable.Range(0, 7)
+            .Select(i => (DayOfWeek)(i))
+            .ToDictionary(i => i, i => i.ToString()[..3].ToUpper());
 
         /// <summary>
         /// Get next valid schedule time
@@ -115,20 +118,21 @@
             Func<DateTimeOffset, int, DateTimeOffset?> businessDayGetter,
             int? adjustOnHoliday) {
 
-            var next = cron.GetNextValidTimeAfter(from);
-            if (next == null) return null;
-            if (adjustOnHoliday == 0) return next; // don't check holidays
+            DateTimeOffset? next = from;
+            DateTimeOffset? businessDay = null;
 
-            var businessDay = businessDayGetter(next.Value, adjustOnHoliday ?? 0); // 0 means just checking if the date is business day or not. if not, return null.
-            if (adjustOnHoliday == null && businessDay == next) return next; // "next" is business day
-            if (adjustOnHoliday != null && adjustOnHoliday != 0 && businessDay == null) return next; // in case businessDayGetter cannot get a valid value.
+            while (businessDay == null || businessDay.Value <= from) {
 
-            if (businessDay == null || businessDay.Value <= from) {
-                return GetNextValidTimeAfter(cron, next.Value, businessDayGetter, adjustOnHoliday);
+                next = cron.GetNextValidTimeAfter(next.Value);
+                if (next == null) return null;
+                if (adjustOnHoliday == 0) return next; // don't check holidays
+
+                businessDay = businessDayGetter(next.Value, adjustOnHoliday ?? 0); // 0 means just checking if the date is business day or not. if not, return null.
+                if (adjustOnHoliday == null && businessDay == next) return next; // "next" is business day
+                if (adjustOnHoliday != null && adjustOnHoliday != 0 && businessDay == null) return next; // in case businessDayGetter cannot get a valid value.
             }
-            else {
-                return businessDay;
-            }
+
+            return businessDay;
         }
 
         /// <summary>
@@ -151,25 +155,25 @@
             Func<DateTime, int, DateTime?> businessDayGetter,
             int? adjustOnHoliday) {
 
-            var next = cron.GetNextValidTimeAfter(new DateTimeOffset(from));
-            if (next == null) return null;
+            DateTimeOffset? next = new DateTimeOffset(from);
+            DateTime? businessDay = null;
 
-            var nextDT = from.Kind switch {
-                DateTimeKind.Utc => next.Value.UtcDateTime,
-                _ => next.Value.LocalDateTime
-            };
-            if (adjustOnHoliday == 0) return nextDT; // don't check holidays
+            while (businessDay == null || businessDay.Value <= from) {
 
-            var businessDay = businessDayGetter(nextDT, adjustOnHoliday ?? 0); // 0 means just checking if the date is business day or not. if not, return null.
-            if (adjustOnHoliday == null && businessDay == nextDT) return nextDT; // "next" is business day
-            if (adjustOnHoliday != null && adjustOnHoliday != 0 && businessDay == null) return nextDT; // in case businessDayGetter cannot get a valid value.
+                next = cron.GetNextValidTimeAfter(next.Value);
+                if (next == null) return null;
+                var nextDT = from.Kind switch {
+                    DateTimeKind.Utc => next.Value.UtcDateTime,
+                    _ => next.Value.LocalDateTime
+                };
+                if (adjustOnHoliday == 0) return nextDT; // don't check holidays
 
-            if (businessDay == null || businessDay.Value <= from) {
-                return GetNextValidTimeAfter(cron, nextDT, businessDayGetter, adjustOnHoliday);
+                businessDay = businessDayGetter(nextDT, adjustOnHoliday ?? 0); // 0 means just checking if the date is business day or not. if not, return null.
+                if (adjustOnHoliday == null && businessDay == next) return nextDT; // "next" is business day
+                if (adjustOnHoliday != null && adjustOnHoliday != 0 && businessDay == null) return nextDT; // in case businessDayGetter cannot get a valid value.
             }
-            else {
-                return businessDay;
-            }
+
+            return businessDay;
         }
 
         public static CronExpression DailyAtHourAndMinute(int hour, int minute) {
@@ -177,7 +181,7 @@
         }
 
         public static CronExpression AtHourAndMinuteOnGivenDaysOfWeek(int hour, int minute, params DayOfWeek[] daysOfWeek) {
-            return new CronExpression($"0 {minute} {hour} ? * {string.Join(",", daysOfWeek.Select(i => (int)i + 1)).Select(i => i.ToString()).ToArray()}");
+            return new CronExpression($"0 {minute} {hour} ? * {string.Join(",", daysOfWeek.OrderBy(i => (int)i).Select(i => DayOfWeeks[i]).ToArray())}");
         }
 
         public static CronExpression MonthlyOnDayAndHourAndMinute(int dayOfMonth, int hour, int minute) {
@@ -216,5 +220,6 @@
             else
                 throw new ArgumentException("Value cannot be 0", nameof(dayOfMonth));
         }
+
     }
 }
