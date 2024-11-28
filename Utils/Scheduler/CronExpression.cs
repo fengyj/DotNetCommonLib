@@ -992,15 +992,6 @@ namespace me.fengyj.CommonLib.Utils.Scheduler {
             ).ToString();
         }
 
-        /// <summary>
-        /// Get human readable description of the Cron expression.
-        /// </summary>
-        /// <returns></returns>
-        public string? GetExpressionDescription() {
-
-            return CronExpressionDescriptor.GetDescription(this.CronExpressionString);
-        }
-
         private static int SkipWhiteSpace(int position, ReadOnlySpan<char> str) {
             for (; position < str.Length && char.IsWhiteSpace(str[position]); position++) {
             }

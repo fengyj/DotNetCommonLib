@@ -16,7 +16,7 @@
         /// - Null means skip it and return the next one.
         /// - 0 means don't check holiday
         /// - > 0 means return the next nth workday
-        /// - < 0 means return the last nth workday
+        /// - < 0 means return the previous nth workday
         /// </param>
         /// <param name="dayOfWeekends"></param>
         /// <returns></returns>
@@ -62,7 +62,7 @@
         /// - Null means skip it and return the next one.
         /// - 0 means don't check holiday
         /// - > 0 means return the next nth workday
-        /// - < 0 means return the last nth workday
+        /// - < 0 means return the previous nth workday
         /// </param>
         /// <param name="dayOfWeekends"></param>
         /// <returns></returns>
@@ -108,7 +108,7 @@
         /// - Null means skip it and return the next one.
         /// - 0 means don't check holiday
         /// - > 0 means return the next nth workday
-        /// - < 0 means return the last nth workday
+        /// - < 0 means return the previous nth workday
         /// </param>
         /// <param name="businessDayGetter"></param>
         /// <returns></returns>
@@ -145,7 +145,7 @@
         /// - Null means skip it and return the next one.
         /// - 0 means don't check holiday
         /// - > 0 means return the next nth workday
-        /// - < 0 means return the last nth workday
+        /// - < 0 means return the previous nth workday
         /// </param>
         /// <param name="businessDayGetter"></param>
         /// <returns></returns>
@@ -174,6 +174,41 @@
             }
 
             return businessDay;
+        }
+
+        /// <summary>
+        /// Get human readable description of the Cron expression.
+        /// </summary>
+        /// <param name="cron"></param>
+        /// <returns></returns>
+        public static string? GetExpressionDescription(this CronExpression cron) {
+
+            return CronExpressionDescriptor.GetDescription(cron.CronExpressionString);
+        }
+
+        /// <summary>
+        /// Get human readable description of the Cron expression.
+        /// </summary>
+        /// <param name="cron"></param>
+        /// <param name="adjustOnHoliday">
+        /// adjust schedule time if it's holiday. 
+        /// - Null means skip it and return the next one.
+        /// - 0 means don't check holiday
+        /// - > 0 means return the next nth workday
+        /// - < 0 means return the previous nth workday
+        /// </param>
+        /// <returns></returns>
+        public static string? GetExpressionDescription(this CronExpression cron, int? adjustOnHoliday) {
+
+            var desc = GetExpressionDescription(cron);
+            return adjustOnHoliday switch {
+                null => $"{desc} (skip holiday or weekend)",
+                0 => desc,
+                1 => $"{desc} (next workday if holiday or weekend)",
+                > 1 => $"{desc} (next {adjustOnHoliday - 1} workdays after the first workday if holiday or weekend)",
+                -1 => $"{desc} (last workday if holiday or weekend)",
+                < -1 => $"{desc} (previous {Math.Abs(adjustOnHoliday.Value) - 1} workdays before the last workday if holiday or weekend)",
+            };
         }
 
         public static CronExpression DailyAtHourAndMinute(int hour, int minute) {
