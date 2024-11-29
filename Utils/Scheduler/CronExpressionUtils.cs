@@ -26,9 +26,7 @@
             int? adjustOnHoliday,
             DayOfWeek[]? dayOfWeekends = null) {
 
-            if (dayOfWeekends == null) dayOfWeekends = DefaultWeekends;
-
-            return GetNextValidTimeAfter(cron, from, (d, days) => GetBusinessDay(d, days, dayOfWeekends), adjustOnHoliday);
+            return GetNextValidTimeAfter(cron, from, (d, days) => GetBusinessDay(d, days, dayOfWeekends ?? DefaultWeekends), adjustOnHoliday);
         }
 
         private static DateTimeOffset? GetBusinessDay(DateTimeOffset date, int days, DayOfWeek[] weekends) {
@@ -204,10 +202,10 @@
             return adjustOnHoliday switch {
                 null => $"{desc} (skip holiday or weekend)",
                 0 => desc,
-                1 => $"{desc} (next workday if holiday or weekend)",
-                > 1 => $"{desc} (next {adjustOnHoliday - 1} workdays after the first workday if holiday or weekend)",
-                -1 => $"{desc} (last workday if holiday or weekend)",
-                < -1 => $"{desc} (previous {Math.Abs(adjustOnHoliday.Value) - 1} workdays before the last workday if holiday or weekend)",
+                1 => $"{desc} (next workday if falls on a holiday or weekend)",
+                > 1 => $"{desc} (next {adjustOnHoliday - 1} workdays after the first workday if falls on a holiday or weekend)",
+                -1 => $"{desc} (last workday if falls on a holiday or weekend)",
+                < -1 => $"{desc} (previous {Math.Abs(adjustOnHoliday.Value) - 1} workdays before the last workday if falls on a holiday or weekend)",
             };
         }
 
