@@ -268,8 +268,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="colIdx">The value in which column in the sheet. Index starts from 1.</param>
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
+            /// <param name="equalsToNullChecker">Check the cell string value and  return true when the value should be treated as Null.</param>
             /// <exception cref="ArgumentException">colIdx, colName, tblColName, one of them must be specificed.</exception>
-            public DataDeserializer(uint? colIdx = null, string? colName = null, string? tblColName = null) {
+            public DataDeserializer(uint? colIdx = null, string? colName = null, string? tblColName = null, Func<string, bool>? equalsToNullChecker = null) {
 
                 if (colIdx == null && colName == null && tblColName == null)
                     throw new ArgumentException("At least one of the arguments should have value.");
@@ -277,6 +278,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 if (colIdx.HasValue) this.ColumnIndex = colIdx.Value;
                 if (colName != null) this.ColumnName = colName;
                 this.TableColumnName = tblColName;
+                this.EqualsToNullChecker = equalsToNullChecker;
             }
 
             public uint? ColumnIndex {
@@ -296,6 +298,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             }
 
             public string? TableColumnName { get; set; }
+            public Func<string, bool>? EqualsToNullChecker { get; set; }
 
             public abstract void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader);
 
@@ -320,6 +323,18 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else
                     rec.AddCellError(this.colName, $"[Warning] {errMsg} Set with default value {defaultValue}.");
             }
+
+            protected string GetStringCellValue(Cell cell, ExcelDataReader<T> reader) {
+                var str = reader.GetStringCellValue(cell);
+                if (str == null || this.EqualsToNullChecker != null && this.EqualsToNullChecker(str)) return null;
+                else return str;
+            }
+
+            protected string GetCellValue(Cell cell, ExcelDataReader<T> reader) {
+                var str = reader.GetCellValue(cell);
+                if (str == null || this.EqualsToNullChecker != null && this.EqualsToNullChecker(str)) return null;
+                else return str;
+            }
         }
 
         public class TextDeserializer : DataDeserializer {
@@ -334,9 +349,16 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
             /// <param name="defaultValue">The default value when the cell doesn't have value nor cannot be parsed.</param>
+            /// <param name="equalsToNullChecker">Check the cell string value and  return true when the value should be treated as Null.</param>
             /// <exception cref="ArgumentException">colIdx, colName, tblColName, one of them must be specificed.</exception>
-            public TextDeserializer(Action<T, string?> valueSetter, uint? colIdx = null, string? colName = null, string? tblColName = null, string? defaultValue = null)
-                : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
+            public TextDeserializer(
+                Action<T, string?> valueSetter,
+                uint? colIdx = null,
+                string? colName = null,
+                string? tblColName = null,
+                string? defaultValue = null,
+                Func<string, bool>? equalsToNullChecker = null)
+                : base(colIdx: colIdx, colName: colName, tblColName: tblColName, equalsToNullChecker: equalsToNullChecker) {
 
                 this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
@@ -346,7 +368,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             public string? DefaultValue { get; private set; }
             public override void DeserializeTo(Record rec, Cell cell, ExcelDataReader<T> reader) {
 
-                var val = reader.GetStringCellValue(cell);
+                var val = this.GetStringCellValue(cell, reader);
                 if (rec.Data != null)
                     this.ValueSetter(rec, val ?? this.DefaultValue);
                 else
@@ -367,6 +389,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
             /// <param name="defaultValue">The default value when the cell doesn't have value nor cannot be parsed.</param>
+            /// <param name="equalsToNullChecker">Check the cell string value and  return true when the value should be treated as Null.</param>
             /// <exception cref="ArgumentException">colIdx, colName, tblColName, one of them must be specificed.</exception>
             public DateTimeDeserializer(
                 Action<T, DateTime?> valueSetter,
@@ -374,7 +397,8 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 uint? colIdx = null,
                 string? colName = null,
                 string? tblColName = null,
-                DateTime? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
+                DateTime? defaultValue = null,
+                Func<string, bool>? equalsToNullChecker = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName, equalsToNullChecker: equalsToNullChecker) {
 
                 this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
@@ -392,6 +416,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
             /// <param name="defaultValue">The default value when the cell doesn't have value nor cannot be parsed.</param>
+            /// <param name="equalsToNullChecker">Check the cell string value and  return true when the value should be treated as Null.</param>
             /// <exception cref="ArgumentException">colIdx, colName, tblColName, one of them must be specificed.</exception>
             public DateTimeDeserializer(
                 Action<T, DateTime?> valueSetter,
@@ -399,7 +424,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 uint? colIdx = null,
                 string? colName = null,
                 string? tblColName = null,
-                DateTime? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
+                DateTime? defaultValue = null,
+                Func<string, bool>? equalsToNullChecker = null)
+                : base(colIdx: colIdx, colName: colName, tblColName: tblColName, equalsToNullChecker: equalsToNullChecker) {
 
                 this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
@@ -423,6 +450,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
             /// <param name="defaultValue">The default value when the cell doesn't have value nor cannot be parsed.</param>
+            /// <param name="equalsToNullChecker">Check the cell string value and  return true when the value should be treated as Null.</param>
             /// <exception cref="ArgumentException">colIdx, colName, tblColName, one of them must be specificed.</exception>
             public DateTimeDeserializer(
                 Action<T, DateTime?> valueSetter,
@@ -430,7 +458,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 uint? colIdx = null,
                 string? colName = null,
                 string? tblColName = null,
-                DateTime? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
+                DateTime? defaultValue = null,
+                Func<string, bool>? equalsToNullChecker = null)
+                : base(colIdx: colIdx, colName: colName, tblColName: tblColName, equalsToNullChecker: equalsToNullChecker) {
 
                 this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
@@ -467,7 +497,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
-                    var str = reader.GetCellValue(cell);
+                    var str = this.GetCellValue(cell, reader);
                     var val = this.Parser(str);
                     if (val.HasValue)
                         this.ValueSetter(rec, val.Value);
@@ -481,7 +511,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    var str = reader.GetCellValue(cell);
+                    var str = this.GetCellValue(cell, reader);
                     if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
                     else {
@@ -506,6 +536,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
             /// <param name="defaultValue">The default value when the cell doesn't have value nor cannot be parsed.</param>
+            /// <param name="equalsToNullChecker">Check the cell string value and  return true when the value should be treated as Null.</param>
             /// <exception cref="ArgumentException">colIdx, colName, tblColName, one of them must be specificed.</exception>
             public TimeSpanDeserializer(
                 Action<T, TimeSpan?> valueSetter,
@@ -513,7 +544,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 uint? colIdx = null,
                 string? colName = null,
                 string? tblColName = null,
-                TimeSpan? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
+                TimeSpan? defaultValue = null,
+                Func<string, bool>? equalsToNullChecker = null)
+                : base(colIdx: colIdx, colName: colName, tblColName: tblColName, equalsToNullChecker: equalsToNullChecker) {
 
                 this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
@@ -543,7 +576,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
-                    var str = reader.GetCellValue(cell);
+                    var str = this.GetCellValue(cell, reader);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d) && (d < 2958466.0 && d > -657435.0))
                         this.ValueSetter(rec, DateTime.FromOADate(d).TimeOfDay);
                     else if (string.IsNullOrEmpty(str))
@@ -557,7 +590,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    var str = reader.GetCellValue(cell);
+                    var str = this.GetCellValue(cell, reader);
                     if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
                     else {
@@ -582,6 +615,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
             /// <param name="defaultValue">The default value when the cell doesn't have value nor cannot be parsed.</param>
+            /// <param name="equalsToNullChecker">Check the cell string value and  return true when the value should be treated as Null.</param>
             /// <exception cref="ArgumentException">colIdx, colName, tblColName, one of them must be specificed.</exception>
             public BoolDeserializer(
                 Action<T, bool?> valueSetter,
@@ -589,7 +623,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 uint? colIdx = null,
                 string? colName = null,
                 string? tblColName = null,
-                bool? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
+                bool? defaultValue = null,
+                Func<string, bool>? equalsToNullChecker = null)
+                : base(colIdx: colIdx, colName: colName, tblColName: tblColName, equalsToNullChecker: equalsToNullChecker) {
 
                 this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.DefaultValue = defaultValue;
@@ -619,7 +655,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 }
                 else if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
-                    var str = reader.GetCellValue(cell);
+                    var str = this.GetCellValue(cell, reader);
                     if (double.TryParse(cell.CellValue?.InnerText, out var d))
                         this.ValueSetter(rec, double.IsFinite(d) && d != 0);
                     else if (string.IsNullOrEmpty(str))
@@ -633,7 +669,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    var str = reader.GetCellValue(cell);
+                    var str = this.GetCellValue(cell, reader);
                     if (string.IsNullOrWhiteSpace(str))
                         this.ValueSetter(rec, this.DefaultValue);
                     else {
@@ -691,6 +727,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
             /// <param name="colName">The value in which column in the sheet. The name starts from A.</param>
             /// <param name="tblColName">The value in which table column in the sheet. If specificed this, means the first row in the range is the table header, will be skipped</param>
             /// <param name="defaultValue">The default value when the cell doesn't have value nor cannot be parsed.</param>
+            /// <param name="equalsToNullChecker">Check the cell string value and  return true when the value should be treated as Null.</param>
             /// <exception cref="ArgumentException">colIdx, colName, tblColName, one of them must be specificed.</exception>
             public NumberDeserializer(
                 Action<T, V?> valueSetter,
@@ -698,7 +735,9 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 uint? colIdx = null,
                 string? colName = null,
                 string? tblColName = null,
-                V? defaultValue = null) : base(colIdx: colIdx, colName: colName, tblColName: tblColName) {
+                V? defaultValue = null,
+                Func<string, bool>? equalsToNullChecker = null)
+                : base(colIdx: colIdx, colName: colName, tblColName: tblColName, equalsToNullChecker: equalsToNullChecker) {
 
                 this.ValueSetter = this.GetValueSetterWrapper(valueSetter);
                 this.Parser = parser;
@@ -718,7 +757,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
 
                 if (cell.DataType?.Value == CellValues.Number || cell.DataType == null) {
 
-                    var str = reader.GetCellValue(cell);
+                    var str = this.GetCellValue(cell, reader);
                     var val = numericParser(cell.CellValue?.InnerText);
 
                     if (val != null) {
@@ -739,7 +778,7 @@ namespace me.fengyj.CommonLib.Office.Excel {
                 else if (cell.DataType?.Value == CellValues.String || cell.DataType?.Value == CellValues.InlineString
                     || cell.DataType?.Value == CellValues.SharedString) {
 
-                    var str = reader.GetCellValue(cell);
+                    var str = this.GetCellValue(cell, reader);
                     if (string.IsNullOrWhiteSpace(str)) {
                         this.ValueSetter(rec, this.DefaultValue);
                     }
